@@ -1,0 +1,178 @@
+# Root .gitignore for GymHive
+# Covers: Windows / macOS cruft, IDEs, .NET, Node/Svelte (SvelteKit), build + test artifacts, secrets.
+# Tweak as your stack grows.
+
+############################
+# OS / File System Noise  #
+############################
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+############################
+# IDE / Editor            #
+############################
+# Visual Studio
+.vs/
+# VS Code (ignore all, uncomment allow-list below if you want to keep some files)
+.vscode/
+# To keep specific VS Code configs, replace the above with:
+# .vscode/*
+# !.vscode/extensions.json
+# !.vscode/settings.json
+# !.vscode/launch.json
+# !.vscode/tasks.json
+
+# JetBrains / Rider / IntelliJ
+.idea/
+*.iml
+out/
+
+# Other tooling
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.ncrunch*
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+############################
+# Logs & Diagnostics      #
+############################
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.trace
+*.dmp
+
+############################
+# Node / Svelte / Tooling #
+############################
+node_modules/
+# SvelteKit build + temp
+.svelte-kit/
+# Vite cache
+.vite/
+# General caches
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.prettiercache
+# Build outputs
+build/
+dist/
+# Coverage
+coverage/
+c8-coverage/
+# Package manager stores
+.pnpm-store/
+.npm/
+# Misc
+*.tsbuildinfo
+*.tgz
+
+############################
+# Environment & Secrets   #
+############################
+.env
+.env.*
+!.env.example
+# Local Azure Functions / secrets
+local.settings.json
+# .NET user secret stores (do not commit)
+secrets.json
+
+############################
+# .NET / C# Artifacts     #
+############################
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Bb]uild/
+[Rr]elease/
+[Dd]ebug/
+[Tt]est[Rr]esults/
+[Aa]ppPackages/
+publish/
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+# Symbols / debugging
+*.pdb
+*.mdb
+# Coverage & profiling
+*.coverage
+*.coveragexml
+# Entity Framework Migrations model snapshots (optional – keep if you track them)
+# *ModelSnapshot.cs
+
+############################
+# Temporary / Generated   #
+############################
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swn
+*.swo
+*.orig
+*.rej
+
+############################
+# Frontend Framework Host #
+############################
+.vercel/
+.netlify/
+.turbo/
+
+############################
+# Images / Design (optional) #
+############################
+# Uncomment if large raw design assets shouldn't be versioned
+# *.psd
+# *.ai
+# *.xd
+
+############################
+# Local Databases         #
+############################
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+############################
+# Misc                    #
+############################
+# Lockfiles are usually committed; remove below only if you decide otherwise.
+# (Leave them tracked for reproducible builds.)
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock
+
+tagged-release
+
+############################
+# Prevent committing large archives/backups
+############################
+*.7z
+*.zip
+*.gz
+*.tar
+*.rar
+
+# End of .gitignore
+
