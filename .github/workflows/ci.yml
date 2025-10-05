@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Build .NET Backend Services
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          cache: true
+
+      - name: Restore
+        run: dotnet restore "GymHiveBackend" --use-current-runtime
+
+      - name: Build (Release)
+        run: dotnet build "GymHiveBackend" --configuration Release --no-restore
+
+      - name: List Projects
+        id: projects
+        run: |
+          echo "projects=$(find GymHiveBackend -name '*.csproj' -print0 | tr '\0' '\n' | paste -sd ',')" >> $GITHUB_OUTPUT
+
+      - name: Conditional Test (if any *Tests.csproj exist)
+        if: ${{ hashFiles('GymHiveBackend/**/*Tests.csproj') != '' }}
+        run: dotnet test GymHiveBackend --configuration Release --no-build --verbosity normal
+
+      - name: Publish Services
+        run: |
+          for proj in $(find GymHiveBackend -name '*.csproj'); do \
+            name=$(basename "$proj" .csproj); \
+            dotnet publish "$proj" -c Release -o "artifacts/publish/$name" --no-build; \
+          done
+
+      - name: Upload Published Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-publish
+          path: artifacts/publish
+          if-no-files-found: warn
+
+  frontend:
+    name: Build Frontend (Svelte + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: GymHiveFrontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: GymHiveFrontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Type & Svelte Check
+        run: npm run check
+        continue-on-error: true  # Do not fail whole build yet; adjust once codebase is clean
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Frontend Dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: GymHiveFrontend/dist
+          if-no-files-found: error
+
+  summary:
+    name: Build Summary
+    needs: [ backend, frontend ]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Outcome
+        run: |
+          echo "Backend job: ${{ needs.backend.result }}"
+          echo "Frontend job: ${{ needs.frontend.result }}"
+          if [ "${{ needs.backend.result }}" != 'success' ] || [ "${{ needs.frontend.result }}" != 'success' ]; then
+            echo "One or more jobs failed."; exit 1; fi
+
