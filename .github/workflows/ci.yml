@@ -59,26 +59,6 @@ jobs:
             dotnet test "$testproj" -c Release --no-build --verbosity normal; \
           done
 
-      - name: Publish Services
-        run: |
-          set -e
-          mkdir -p artifacts/publish
-          # Publish each service project into its own folder
-            for proj in $(find GymHiveBackend -type f -name '*.csproj' -not -name '*Tests.csproj'); do \
-            basename=$(basename "$proj" .csproj); \
-            echo "==> Publishing $proj"; \
-            dotnet publish "$proj" -c Release -o "artifacts/publish/$basename" --no-build; \
-          done
-          echo 'Published folders:'
-          ls -1 artifacts/publish || true
-
-      - name: Upload Published Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-            name: backend-publish
-            path: artifacts/publish
-            if-no-files-found: warn
-
   frontend:
     name: Build Frontend (Svelte + Vite)
     runs-on: ubuntu-latest
@@ -110,13 +90,6 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Upload Frontend Dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: GymHiveFrontend/dist
-          if-no-files-found: error
 
   summary:
     name: Build Summary
