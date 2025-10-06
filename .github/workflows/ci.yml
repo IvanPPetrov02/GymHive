@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Build .NET Backend Services
+    name: Build .NET Backend Services (All Microservices)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,34 +25,52 @@ jobs:
           dotnet-version: '9.0.x'
           cache: true
 
-      - name: Restore
-        run: dotnet restore "GymHiveBackend" --use-current-runtime
-
-      - name: Build (Release)
-        run: dotnet build "GymHiveBackend" --configuration Release --no-restore
-
-      - name: List Projects
-        id: projects
+      - name: Discover Projects
+        id: discover
         run: |
-          echo "projects=$(find GymHiveBackend -name '*.csproj' -print0 | tr '\0' '\n' | paste -sd ',')" >> $GITHUB_OUTPUT
+          echo 'Service projects:'
+          find GymHiveBackend -type f -name '*.csproj' -not -name '*Tests.csproj'
+          echo 'Test projects:'
+          find GymHiveBackend -type f -name '*Tests.csproj'
 
-      - name: Conditional Test (if any *Tests.csproj exist)
+      - name: Restore & Build Services
+        run: |
+          set -e
+          for proj in $(find GymHiveBackend -type f -name '*.csproj' -not -name '*Tests.csproj'); do \
+            echo "==> Restoring $proj"; \
+            dotnet restore "$proj"; \
+            echo "==> Building $proj"; \
+            dotnet build "$proj" -c Release --no-restore; \
+          done
+
+      - name: Run Tests (if any)
         if: ${{ hashFiles('GymHiveBackend/**/*Tests.csproj') != '' }}
-        run: dotnet test GymHiveBackend --configuration Release --no-build --verbosity normal
+        run: |
+          set -e
+          for testproj in $(find GymHiveBackend -type f -name '*Tests.csproj'); do \
+            echo "==> Testing $testproj"; \
+            dotnet test "$testproj" -c Release --no-build --verbosity normal; \
+          done
 
       - name: Publish Services
         run: |
-          for proj in $(find GymHiveBackend -name '*.csproj'); do \
-            name=$(basename "$proj" .csproj); \
-            dotnet publish "$proj" -c Release -o "artifacts/publish/$name" --no-build; \
+          set -e
+          mkdir -p artifacts/publish
+          # Publish each service project into its own folder
+          for proj in $(find GymHiveBackend -type f -name '*.csproj' -not -name '*Tests.csproj'); do \
+            basename=$(basename "$proj" .csproj); \
+            echo "==> Publishing $proj"; \
+            dotnet publish "$proj" -c Release -o "artifacts/publish/$basename" --no-build; \
           done
+          echo 'Published folders:'
+          ls -1 artifacts/publish || true
 
       - name: Upload Published Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: backend-publish
-          path: artifacts/publish
-          if-no-files-found: warn
+            name: backend-publish
+            path: artifacts/publish
+            if-no-files-found: warn
 
   frontend:
     name: Build Frontend (Svelte + Vite)
@@ -81,7 +99,7 @@ jobs:
 
       - name: Type & Svelte Check
         run: npm run check
-        continue-on-error: true  # Do not fail whole build yet; adjust once codebase is clean
+        continue-on-error: true  # Adjust once codebase is clean
 
       - name: Build
         run: npm run build
@@ -105,4 +123,3 @@ jobs:
           echo "Frontend job: ${{ needs.frontend.result }}"
           if [ "${{ needs.backend.result }}" != 'success' ] || [ "${{ needs.frontend.result }}" != 'success' ]; then
             echo "One or more jobs failed."; exit 1; fi
-
