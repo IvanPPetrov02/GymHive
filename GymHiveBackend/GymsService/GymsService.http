@@ -1,6 +1,0 @@
-@GymsService_HostAddress = http://localhost:5047
-
-GET {{GymsService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

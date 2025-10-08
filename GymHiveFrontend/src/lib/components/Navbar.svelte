@@ -1,18 +1,12 @@
 <script lang="ts">
   import { location } from 'svelte-spa-router';
+  import { isAuthenticated, user, authConfigMissing } from '../auth/auth';
+  import { login, logout } from '../auth/auth';
 
   let mobileMenuOpen = false;
-  let isAuthenticated = false; // Placeholder auth state
 
   function toggleMobileMenu() {
     mobileMenuOpen = !mobileMenuOpen;
-  }
-
-  function logout() {
-    console.log('Logout clicked');
-    // TODO: remove auth token & redirect
-    // localStorage.removeItem('token');
-    // push('/login');
   }
 
   function isActive(path: string) {
@@ -30,15 +24,30 @@
         <div class="hidden md:flex md:items-center md:space-x-2">
           <a href="#/" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Home</a>
           <a href="#/gyms" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/gyms') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Find Gyms</a>
+          {#if $isAuthenticated}
+            <a href="#/profile" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/profile') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Profile</a>
+          {/if}
         </div>
       </div>
 
       <div class="hidden md:flex md:items-center md:space-x-3">
-        {#if isAuthenticated}
-          <a href="#/profile" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition">Profile</a>
-          <button on:click={logout} class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow-sm">Logout</button>
+        {#if $isAuthenticated}
+          <div class="flex items-center gap-3 pr-2">
+            {#if $user?.picture}
+              <img src={$user.picture} alt="avatar" class="h-9 w-9 rounded-full ring-2 ring-blue-200" referrerpolicy="no-referrer" />
+            {/if}
+            <div class="text-sm text-right">
+              <div class="font-semibold text-gray-800 leading-tight max-w-[140px] truncate">{$user?.name || $user?.email}</div>
+              <div class="text-gray-500 text-xs">Member</div>
+            </div>
+          </div>
+          <button on:click={() => logout()} class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow-sm">Logout</button>
         {:else}
-          <a href="#/login" class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm">Login / Register</a>
+          {#if $authConfigMissing}
+            <button disabled title="Auth not configured" class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-gray-400 cursor-not-allowed opacity-70">Auth Not Configured</button>
+          {:else}
+            <button on:click={() => login($location || '#/')} class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm">Login / Sign Up</button>
+          {/if}
         {/if}
       </div>
 
@@ -58,12 +67,27 @@
     <div id="mobile-menu" class="md:hidden px-4 pb-6 space-y-2 bg-white shadow-inner">
       <a href="#/" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Home</a>
       <a href="#/gyms" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/gyms') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Find Gyms</a>
+      {#if $isAuthenticated}
+        <a href="#/profile" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/profile') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Profile</a>
+      {/if}
       <div class="h-px bg-gray-200 my-2"></div>
-      {#if isAuthenticated}
-        <a href="#/profile" class="block px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition">Profile</a>
-        <button on:click={logout} class="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow">Logout</button>
+      {#if $isAuthenticated}
+        <div class="flex items-center gap-3 px-4 py-2">
+          {#if $user?.picture}
+            <img src={$user.picture} alt="avatar" class="h-10 w-10 rounded-full ring-2 ring-blue-200" referrerpolicy="no-referrer" />
+          {/if}
+          <div class="text-sm">
+            <div class="font-semibold text-gray-800 leading-tight">{$user?.name || $user?.email}</div>
+            <div class="text-gray-500 text-xs">Member</div>
+          </div>
+        </div>
+        <button on:click={() => logout()} class="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow">Logout</button>
       {:else}
-        <a href="#/login" class="block px-4 py-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow">Login / Register</a>
+        {#if $authConfigMissing}
+          <button disabled class="block w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-gray-400 cursor-not-allowed opacity-70">Auth Not Configured</button>
+        {:else}
+          <button on:click={() => login($location || '#/')} class="block w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow">Login / Sign Up</button>
+        {/if}
       {/if}
     </div>
   {/if}
