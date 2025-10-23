@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # MySQL Database for Authentication Service
+  auth-db:
+    image: mysql:8.0
+    container_name: gymhive-auth-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${AUTH_DB_ROOT_PASSWORD:-RootPassword123!}
+      MYSQL_DATABASE: ${AUTH_DB_NAME:-GymHive}
+      MYSQL_USER: ${AUTH_DB_USER:-gymhive_user}
+      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD:-GymHive123!}
+    ports:
+      - "3307:3306"
+    volumes:
+      - auth-db-data:/var/lib/mysql
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${AUTH_DB_ROOT_PASSWORD:-RootPassword123!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Authentication Service
+  auth-service:
+    build:
+      context: ./GymHiveBackend/AuthenticationService
+      dockerfile: Dockerfile
+    container_name: gymhive-auth-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=auth-db;Port=3306;Database=${AUTH_DB_NAME:-GymHive};User=${AUTH_DB_USER:-gymhive_user};Password=${AUTH_DB_PASSWORD:-GymHive123!};"
+      JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
+      JWT__Issuer: ${JWT_ISSUER:-GymHive}
+      JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+      JWT__ExpirationHours: ${JWT_EXPIRATION_HOURS:-24}
+    ports:
+      - "8080:8080"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend
+  frontend:
+    build:
+      context: ./GymHiveFrontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080
+    container_name: gymhive-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  gymhive-network:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+    driver: local
