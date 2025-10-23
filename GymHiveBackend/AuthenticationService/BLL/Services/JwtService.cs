@@ -10,9 +10,11 @@ using Microsoft.Extensions.Configuration;
 public class JwtService : IJwtService
 {
     private readonly string _secretKey;
+    private readonly IConfiguration _configuration;
 
         public JwtService(IConfiguration configuration)
         {
+            _configuration = configuration;
             _secretKey = configuration["AppSettings:Token"] ??
                          throw new InvalidOperationException("JWT secret key must be set.");
         }
@@ -33,6 +35,8 @@ public class JwtService : IJwtService
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddDays(1),
+                Issuer = _configuration["Jwt:Issuer"] ?? "GymHiveAuthService",
+                Audience = _configuration["Jwt:Audience"] ?? "GymHiveGymService",
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
             };

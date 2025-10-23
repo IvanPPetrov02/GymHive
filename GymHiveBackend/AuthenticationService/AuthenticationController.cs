@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BLL.DTOs;
 using BLL.ManagerInterfaces;
+using BLL.Services;
 using Microsoft.Extensions.Logging;
 
 namespace AuthenticationService.Controllers
@@ -12,11 +13,16 @@ namespace AuthenticationService.Controllers
     public class AuthenticationController : ControllerBase
     {
         private readonly IUserManager _userManager;
+        private readonly ITokenValidationService _tokenValidationService;
         private readonly ILogger<AuthenticationController> _logger;
 
-        public AuthenticationController(IUserManager userManager, ILogger<AuthenticationController> logger)
+        public AuthenticationController(
+            IUserManager userManager, 
+            ITokenValidationService tokenValidationService,
+            ILogger<AuthenticationController> logger)
         {
             _userManager = userManager;
+            _tokenValidationService = tokenValidationService;
             _logger = logger;
         }
 
@@ -190,6 +196,37 @@ namespace AuthenticationService.Controllers
             Response.Cookies.Append("jwt", "", cookieOptions);
 
             return Ok("success");
+        }
+
+        /// <summary>
+        /// OAuth 2.0 Token Introspection endpoint (RFC 7662)
+        /// Used by other microservices to validate JWT tokens
+        /// </summary>
+        [HttpPost("introspect")]
+        [AllowAnonymous] // Services don't authenticate themselves in this simple implementation
+        public async Task<IActionResult> IntrospectToken([FromBody] TokenValidationRequestDTO request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token))
+            {
+                return BadRequest(new { error = "Token is required" });
+            }
+
+            // Remove "Bearer " prefix if present
+            var token = request.Token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? request.Token.Substring(7)
+                : request.Token;
+
+            var result = await _tokenValidationService.ValidateTokenAsync(token);
+
+            // Log validation attempt for security auditing
+            _logger.LogInformation(
+                "Token introspection: Active={Active}, UserId={UserId}, Error={Error}",
+                result.Active,
+                result.UserId,
+                result.Error
+            );
+
+            return Ok(result);
         }
     }
 }

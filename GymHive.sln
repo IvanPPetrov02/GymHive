@@ -1,0 +1,46 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GymHiveBackend", "GymHiveBackend", "{42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationService", "GymHiveBackend\AuthenticationService\AuthenticationService.csproj", "{EA11347B-349B-418C-4AB7-C8D38A45628D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AuthenticationService (1)", "AuthenticationService (1)", "{A020A010-F765-DA33-5C6C-BF6166E8D741}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BLL", "GymHiveBackend\AuthenticationService\BLL\BLL.csproj", "{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "GymHiveBackend\AuthenticationService\DAL\DAL.csproj", "{2288397F-55EB-C3FD-90EF-76185E271A6B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EA11347B-349B-418C-4AB7-C8D38A45628D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA11347B-349B-418C-4AB7-C8D38A45628D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA11347B-349B-418C-4AB7-C8D38A45628D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA11347B-349B-418C-4AB7-C8D38A45628D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EA11347B-349B-418C-4AB7-C8D38A45628D} = {42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}
+		{A020A010-F765-DA33-5C6C-BF6166E8D741} = {42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}
+		{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7} = {A020A010-F765-DA33-5C6C-BF6166E8D741}
+		{2288397F-55EB-C3FD-90EF-76185E271A6B} = {A020A010-F765-DA33-5C6C-BF6166E8D741}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6C032147-0AEC-4B14-A784-EC7892DE585E}
+	EndGlobalSection
+EndGlobal

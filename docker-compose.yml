@@ -53,19 +53,99 @@ services:
       retries: 3
       start_period: 40s
 
+  # MySQL Database for Gym Service
+  gym-db:
+    image: mysql:8.0
+    container_name: gymhive-gym-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${GYM_DB_ROOT_PASSWORD:-RootPassword123!}
+      MYSQL_DATABASE: ${GYM_DB_NAME:-GymHiveGyms}
+      MYSQL_USER: ${GYM_DB_USER:-gymhive_user}
+      MYSQL_PASSWORD: ${GYM_DB_PASSWORD:-GymHive123!}
+    ports:
+      - "3308:3306"
+    volumes:
+      - gym-db-data:/var/lib/mysql
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${GYM_DB_ROOT_PASSWORD:-RootPassword123!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Gym Service
+  gym-service:
+    build:
+      context: ./GymHiveBackend
+      dockerfile: GymService/Dockerfile
+    container_name: gymhive-gym-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=gym-db;Port=3306;Database=${GYM_DB_NAME:-GymHiveGyms};User=${GYM_DB_USER:-gymhive_user};Password=${GYM_DB_PASSWORD:-GymHive123!};"
+      JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
+      JWT__Issuer: ${JWT_ISSUER:-GymHive}
+      JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+    ports:
+      - "8081:8080"
+    depends_on:
+      gym-db:
+        condition: service_healthy
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./GymHiveBackend
+      dockerfile: ApiGateway/Dockerfile
+    container_name: gymhive-api-gateway
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address: "http://auth-service:8080"
+      ReverseProxy__Clusters__gym-cluster__Destinations__destination1__Address: "http://gym-service:8080"
+      JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
+      JWT__Issuer: ${JWT_ISSUER:-GymHive}
+      JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+    ports:
+      - "5000:8080"
+    depends_on:
+      - auth-service
+      - gym-service
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   # Frontend
   frontend:
     build:
       context: ./GymHiveFrontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:8080
+        VITE_API_URL: http://localhost:5000
     container_name: gymhive-frontend
     restart: unless-stopped
     ports:
       - "3000:80"
     depends_on:
-      - auth-service
+      - api-gateway
     networks:
       - gymhive-network
     healthcheck:
@@ -81,4 +161,6 @@ networks:
 
 volumes:
   auth-db-data:
+    driver: local
+  gym-db-data:
     driver: local

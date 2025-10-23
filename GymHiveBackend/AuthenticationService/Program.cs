@@ -74,6 +74,7 @@ builder.Services.AddScoped<IUserManager, UserManager>();
 builder.Services.AddScoped<IUserDAO, UserRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<ITokenValidationService, TokenValidationService>();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["AppSettings:Token"] ?? throw new InvalidOperationException("JWT token key not configured");
@@ -121,5 +122,13 @@ app.MapControllers();
 
 // Redirect root to Swagger
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
+
+// Health check endpoint
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "healthy",
+    service = "AuthenticationService",
+    timestamp = DateTime.UtcNow
+})).AllowAnonymous().ExcludeFromDescription();
 
 app.Run();
