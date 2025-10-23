@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { location } from 'svelte-spa-router';
-  import { isAuthenticated, user, authConfigMissing } from '../auth/auth';
-  import { login, logout } from '../auth/auth';
+  import { location, push } from 'svelte-spa-router';
+  import { isAuthenticated, user } from '../auth/auth';
+  import { logout } from '../auth';
 
   let mobileMenuOpen = false;
 
@@ -11,6 +11,10 @@
 
   function isActive(path: string) {
     return $location === path;
+  }
+
+  function handleLogin() {
+    push('/login');
   }
 </script>
 
@@ -43,11 +47,7 @@
           </div>
           <button on:click={() => logout()} class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow-sm">Logout</button>
         {:else}
-          {#if $authConfigMissing}
-            <button disabled title="Auth not configured" class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-gray-400 cursor-not-allowed opacity-70">Auth Not Configured</button>
-          {:else}
-            <button on:click={() => login($location || '#/')} class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm">Login / Sign Up</button>
-          {/if}
+          <button on:click={handleLogin} class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow-sm">Login / Sign Up</button>
         {/if}
       </div>
 
@@ -83,11 +83,7 @@
         </div>
         <button on:click={() => logout()} class="w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow">Logout</button>
       {:else}
-        {#if $authConfigMissing}
-          <button disabled class="block w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-gray-400 cursor-not-allowed opacity-70">Auth Not Configured</button>
-        {:else}
-          <button on:click={() => login($location || '#/')} class="block w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow">Login / Sign Up</button>
-        {/if}
+        <button on:click={handleLogin} class="block w-full text-left px-4 py-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition shadow">Login / Sign Up</button>
       {/if}
     </div>
   {/if}

@@ -1,0 +1,63 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'GymHiveFrontend/**'
+      - '.github/workflows/FrontEndCI.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'GymHiveFrontend/**'
+      - '.github/workflows/FrontEndCI.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Build & Test Frontend (Svelte + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: GymHiveFrontend
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: GymHiveFrontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Lint Code
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Type & Svelte Check
+        run: npm run check
+        continue-on-error: true
+
+      - name: Build Application
+        run: npm run build
+        
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: GymHiveFrontend/dist
+          retention-days: 7

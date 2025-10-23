@@ -1,18 +1,3 @@
-export interface AuthConfig {
-  domain: string;
-  clientId: string;
-  audience?: string;
-  scope: string;
-}
-
-// Build-time injected via Vite (must start with VITE_ to be exposed to client)
-const authConfig: AuthConfig = {
-  domain: import.meta.env.VITE_AUTH0_DOMAIN || '',
-  clientId: import.meta.env.VITE_AUTH0_CLIENT_ID || '',
-  audience: import.meta.env.VITE_AUTH0_AUDIENCE || undefined,
-  scope: import.meta.env.VITE_AUTH0_SCOPE || 'openid profile email'
-};
-
 export interface ServicesConfig {
   apiGateway: string;        // Main gateway base URL
   gymsService: string;       // Optional direct service URL
@@ -32,7 +17,6 @@ export interface BuildConfig {
 }
 
 export interface AppConfig {
-  auth: AuthConfig;
   services: ServicesConfig;
   build: BuildConfig;
 }
@@ -68,23 +52,9 @@ const buildConfig: BuildConfig = {
 };
 
 const appConfig: AppConfig = {
-  auth: authConfig,
   services: servicesConfig,
   build: buildConfig
 };
-
-function validateAuth(c: AuthConfig, issues?: ValidationIssue[]) {
-  const problems: string[] = [];
-  if (!c.domain) problems.push('Auth0 domain missing (VITE_AUTH0_DOMAIN)');
-  if (!c.clientId) problems.push('Auth0 client id missing (VITE_AUTH0_CLIENT_ID)');
-  if (c.domain.includes('your-tenant')) problems.push('Auth0 domain still placeholder');
-  if (c.clientId === 'YOUR_CLIENT_ID') problems.push('Auth0 client id placeholder');
-  if (problems.length) {
-    const msg = '[AppConfig][Auth] Issues:\n - ' + problems.join('\n - ');
-    if (issues) problems.forEach(p => issues.push({ section: 'auth', message: p, severity: 'warning' }));
-    if (import.meta.env.DEV) console.warn(msg); else console.error(msg);
-  }
-}
 
 function validateServices(s: ServicesConfig, issues?: ValidationIssue[]) {
   if (!s.apiGateway && import.meta.env.DEV) {
@@ -137,7 +107,6 @@ let collectedIssues: ValidationIssue[] | null = null;
 function performFullValidation(): ValidationIssue[] {
   if (collectedIssues) return collectedIssues; // idempotent
   const issues: ValidationIssue[] = [];
-  validateAuth(appConfig.auth, issues);
   validateServices(appConfig.services, issues);
   validateBuild(appConfig.build, issues);
   collectedIssues = issues;
@@ -149,25 +118,7 @@ function performFullValidation(): ValidationIssue[] {
   performFullValidation();
 })();
 
-export function getAppConfig(): AppConfig { return appConfig; }
-export function getServicesConfig(): ServicesConfig { return appConfig.services; }
-export function getBuildConfig(): BuildConfig { return appConfig.build; }
-
-// Backwards compatibility (used by auth.ts)
-export function getAuthConfig(): AuthConfig { return appConfig.auth; }
-export function isAuthConfigured(): boolean { return isAuthConfiguredOriginal(); }
-
-// New: expose validation utilities
-export function getValidationIssues(): ValidationIssue[] { return performFullValidation().slice(); }
-export function isConfigValid(): boolean { return getValidationIssues().every(i => i.severity !== 'error'); }
-
-// New: convenience accessor for service URLs by key
-export type ServiceName = keyof ServicesConfig;
-export function getServiceUrl(name: ServiceName): string { return appConfig.services[name]; }
-
-// Preserve original implementation name to avoid recursion
-function isAuthConfiguredOriginal(): boolean {
-  if (!authConfig.domain || !authConfig.clientId) return false;
-  if (authConfig.domain.includes('your-tenant') || authConfig.clientId === 'YOUR_CLIENT_ID') return false;
-  return true;
-}
+export function getAppConfig() { return appConfig; }
+export function getServicesConfig() { return servicesConfig; }
+export function getBuildConfig() { return buildConfig; }
+export function getValidationIssues() { return performFullValidation(); }

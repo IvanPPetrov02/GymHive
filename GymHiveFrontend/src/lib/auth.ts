@@ -1,17 +1,39 @@
 import { writable, derived, get } from 'svelte/store';
-import { createAuth0Client, type Auth0Client, type RedirectLoginOptions, type GetTokenSilentlyOptions } from '@auth0/auth0-spa-js';
-import { getAuthConfig, isAuthConfigured } from './config/env';
+import { getApiBase } from './api';
+
+// =============================
+// Types
+// =============================
+export interface User {
+  uuid: string;
+  email: string;
+  name: string;
+  surname: string;
+  isActive: boolean;
+  createdAt: string;
+  role: string;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
+  surname: string;
+}
 
 // =============================
 // Stores
 // =============================
-export const auth0Client = writable<Auth0Client | null>(null);
 export const isAuthenticated = writable(false);
-export const user = writable<any | null>(null);
+export const user = writable<User | null>(null);
 export const isLoading = writable(true);
 export const accessToken = writable<string | null>(null);
 export const authError = writable<string | null>(null);
-export const authConfigMissing = writable(false);
 
 export const authState = derived(
   [isAuthenticated, user, isLoading, authError],
@@ -24,152 +46,242 @@ export const authState = derived(
 );
 
 // =============================
-// Internal
+// Constants
 // =============================
-const baseConfig = getAuthConfig();
-const audience = 'https://api.gymhive.local'; // per requirements
-let initStarted = false;
+const TOKEN_KEY = 'gymhive_access_token';
+const USER_KEY = 'gymhive_user';
 
-function unconfigured() {
-  return !isAuthConfigured();
+// =============================
+// Internal Helpers
+// =============================
+function saveToStorage(token: string, userData: User) {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+  } catch (e) {
+    console.warn('[Auth] Failed to save to localStorage', e);
+  }
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  } catch (e) {
+    console.warn('[Auth] Failed to clear localStorage', e);
+  }
+}
+
+function loadFromStorage(): { token: string | null; user: User | null } {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const userJson = localStorage.getItem(USER_KEY);
+    const userData = userJson ? JSON.parse(userJson) : null;
+    return { token, user: userData };
+  } catch (e) {
+    console.warn('[Auth] Failed to load from localStorage', e);
+    return { token: null, user: null };
+  }
 }
 
 // =============================
 // Initialization
 // =============================
 export async function initAuth() {
-  if (initStarted) return; // idempotent
-  initStarted = true;
-
-  if (unconfigured()) {
-    authConfigMissing.set(true);
-    console.warn('[Auth] Missing Auth0 env vars (VITE_AUTH0_DOMAIN / VITE_AUTH0_CLIENT_ID).');
-    isLoading.set(false);
-    return;
-  }
+  isLoading.set(true);
+  authError.set(null);
 
   try {
-    const client = await createAuth0Client({
-      domain: baseConfig.domain,
-      clientId: baseConfig.clientId,
-      authorizationParams: {
-        audience, // fixed audience per requirement
-        scope: baseConfig.scope || 'openid profile email',
-        redirect_uri: window.location.origin + '/'
-      },
-      cacheLocation: 'localstorage',
-      useRefreshTokens: true
-    });
-    auth0Client.set(client);
+    const { token, user: storedUser } = loadFromStorage();
 
-    // Handle redirect callback if returning from Auth0
-    if (window.location.search.includes('code=') && window.location.search.includes('state=')) {
-      try {
-        const { appState } = await client.handleRedirectCallback();
-        const targetHashRaw = (appState && (appState as any).target) || window.location.hash || '#/';
-        const normalized = targetHashRaw.startsWith('#') ? targetHashRaw : '#' + targetHashRaw.replace(/^\//, '');
-        window.history.replaceState({}, document.title, window.location.pathname + normalized);
-      } catch (e: any) {
-        console.error('[Auth] Redirect callback failed', e);
-        authError.set(e?.message || 'Authentication callback failed');
+    if (token && storedUser) {
+      // Validate token by fetching user profile from API
+      const apiBase = getApiBase();
+      if (!apiBase) {
+        console.warn('[Auth] No API base URL configured');
+        clearStorage();
+        isAuthenticated.set(false);
+        isLoading.set(false);
+        return;
       }
-    } else if (window.location.search.includes('error=')) {
-      const params = new URLSearchParams(window.location.search);
-      const err = params.get('error_description') || params.get('error');
-      if (err) authError.set(decodeURIComponent(err));
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-    }
 
-    const authed = await client.isAuthenticated();
-    isAuthenticated.set(authed);
-    if (authed) {
-      await hydrateUserAndToken(client);
+      try {
+        const response = await fetch(`${apiBase}/api/Authentication/GetUser`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          user.set(userData);
+          accessToken.set(token);
+          isAuthenticated.set(true);
+        } else {
+          // Token invalid, clear storage
+          clearStorage();
+          isAuthenticated.set(false);
+        }
+      } catch (e) {
+        console.warn('[Auth] Failed to validate token', e);
+        clearStorage();
+        isAuthenticated.set(false);
+      }
+    } else {
+      isAuthenticated.set(false);
     }
   } catch (e: any) {
     console.error('[Auth] Initialization error', e);
     authError.set(e?.message || 'Initialization failed');
+    isAuthenticated.set(false);
   } finally {
     isLoading.set(false);
-  }
-}
-
-async function hydrateUserAndToken(client: Auth0Client) {
-  try {
-    const u = await client.getUser();
-    user.set(u);
-  } catch (e) {
-    console.warn('[Auth] Failed to load user profile', e);
-  }
-  try {
-    const raw = await client.getTokenSilently({
-      authorizationParams: { audience, scope: baseConfig.scope }
-    } as GetTokenSilentlyOptions);
-    const token = typeof raw === 'string' ? raw : (raw as any)?.access_token;
-    if (token) accessToken.set(token);
-  } catch (e) {
-    console.warn('[Auth] Could not get initial access token', e);
   }
 }
 
 // =============================
 // Auth Actions
 // =============================
-export async function login(targetHash?: string) {
-  if (unconfigured()) {
-    authConfigMissing.set(true);
-    alert('Authentication not configured. Set VITE_AUTH0_DOMAIN and VITE_AUTH0_CLIENT_ID.');
-    return;
+export async function login(credentials: LoginCredentials): Promise<boolean> {
+  authError.set(null);
+  const apiBase = getApiBase();
+
+  if (!apiBase) {
+    authError.set('API base URL not configured');
+    return false;
   }
-  if (!get(auth0Client) && !get(isLoading)) await initAuth();
-  if (get(isLoading)) await waitForAuth();
-  const client = get(auth0Client);
-  if (!client) return console.error('[Auth] login() called but client missing');
-  const currentHash = window.location.hash || '#/';
-  const target = targetHash?.startsWith('#') ? targetHash : currentHash;
-  const opts: RedirectLoginOptions = {
-    authorizationParams: {
-      redirect_uri: window.location.origin + '/',
-      appState: { target }
+
+  try {
+    const response = await fetch(`${apiBase}/api/Authentication/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Login failed' }));
+      authError.set(error.message || `Login failed: ${response.status}`);
+      return false;
     }
-  } as any;
-  await client.loginWithRedirect(opts);
+
+    const data = await response.json();
+    const token = data.token;
+
+    if (!token) {
+      authError.set('No token received from server');
+      return false;
+    }
+
+    // Fetch user data after successful login
+    try {
+      const userResponse = await fetch(`${apiBase}/api/Authentication/GetUser`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        saveToStorage(token, userData);
+        accessToken.set(token);
+        user.set(userData);
+        isAuthenticated.set(true);
+        return true;
+      } else {
+        authError.set('Failed to fetch user data');
+        return false;
+      }
+    } catch (e: any) {
+      console.error('[Auth] Failed to fetch user data', e);
+      authError.set('Failed to fetch user data');
+      return false;
+    }
+  } catch (e: any) {
+    console.error('[Auth] Login error', e);
+    authError.set(e?.message || 'Network error during login');
+    return false;
+  }
+}
+
+export async function register(data: RegisterData): Promise<boolean> {
+  authError.set(null);
+  const apiBase = getApiBase();
+
+  if (!apiBase) {
+    authError.set('API base URL not configured');
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${apiBase}/api/Authentication/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Registration failed' }));
+      authError.set(error.message || `Registration failed: ${response.status}`);
+      return false;
+    }
+
+    const responseData = await response.json();
+    
+    // After registration, automatically log in
+    if (responseData.message === 'User created') {
+      return await login({ email: data.email, password: data.password });
+    }
+
+    authError.set('Registration failed: ' + (responseData.message || 'Unknown error'));
+    return false;
+  } catch (e: any) {
+    console.error('[Auth] Registration error', e);
+    authError.set(e?.message || 'Network error during registration');
+    return false;
+  }
 }
 
 export async function logout() {
-  const client = get(auth0Client);
-  if (!client) return console.warn('[Auth] logout() before init');
-  client.logout({ logoutParams: { returnTo: window.location.origin + '/' } });
+  const apiBase = getApiBase();
+  
+  // Call logout endpoint if API is available
+  if (apiBase) {
+    try {
+      await fetch(`${apiBase}/api/Authentication/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (e) {
+      console.warn('[Auth] Logout API call failed', e);
+    }
+  }
+
+  clearStorage();
   isAuthenticated.set(false);
   user.set(null);
   accessToken.set(null);
+  authError.set(null);
 }
 
-export async function getAccessToken(options?: GetTokenSilentlyOptions): Promise<string | null> {
-  const client = get(auth0Client);
-  if (!client) return null;
-  try {
-    const raw = await client.getTokenSilently({
-      authorizationParams: { audience, scope: baseConfig.scope, ...(options as any)?.authorizationParams },
-      ...options
-    } as GetTokenSilentlyOptions);
-    const token = typeof raw === 'string' ? raw : (raw as any)?.access_token;
-    if (token) {
-      accessToken.set(token);
-      return token;
-    }
-  } catch (e) {
-    console.error('[Auth] getAccessToken failed', e);
+export async function getAccessToken(): Promise<string | null> {
+  const token = get(accessToken);
+  if (token) return token;
+
+  // Try to load from storage
+  const { token: storedToken } = loadFromStorage();
+  if (storedToken) {
+    accessToken.set(storedToken);
+    return storedToken;
   }
+
   return null;
 }
 
-export async function ensureAuthenticated(targetHash?: string): Promise<boolean> {
+export async function ensureAuthenticated(): Promise<boolean> {
   await waitForAuth();
-  if (!get(isAuthenticated)) {
-    await login(targetHash);
-    return false; // navigation will redirect
-  }
-  return true;
+  return get(isAuthenticated);
 }
 
 export async function waitForAuth(timeoutMs = 8000) {
@@ -190,39 +302,53 @@ export async function waitForAuth(timeoutMs = 8000) {
 export function authGuard(componentImport: () => Promise<any>) {
   return async () => {
     const ok = await ensureAuthenticated();
-    if (!ok) return {}; // navigation will change after redirect
+    if (!ok) {
+      // Redirect to login
+      window.location.hash = '#/login';
+      return {};
+    }
     return componentImport();
   };
 }
 
-// Optional periodic silent renewal (every 5 minutes) to keep token fresh
-let renewInterval: number | null = null;
-function startRenewLoop() {
-  if (renewInterval) return;
-  renewInterval = window.setInterval(async () => {
-    if (get(isAuthenticated)) {
-      await getAccessToken().catch(() => {});
-    }
-  }, 5 * 60 * 1000);
-}
-
-// Auto-start on first init
-initAuth().then(startRenewLoop).catch(() => {});
-
-// Expose audience for external api helpers
-export function getApiAudience() { return audience; }
-
-// Wrapper around client.getUser() for convenience
+// Refresh user profile from API
 export async function getUser(forceRefresh = false) {
   if (!forceRefresh && get(user)) return get(user);
-  const client = get(auth0Client);
-  if (!client) return null;
+
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  const apiBase = getApiBase();
+  if (!apiBase) return null;
+
   try {
-    const u = await client.getUser();
-    user.set(u);
-    return u;
+    const response = await fetch(`${apiBase}/api/users/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      user.set(userData);
+      return userData;
+    }
   } catch (e) {
     console.warn('[Auth] getUser failed', e);
-    return null;
   }
+
+  return null;
 }
+
+// Legacy alias for backward compatibility
+export async function requireAuth(redirectPath?: string): Promise<boolean> {
+  const authed = await ensureAuthenticated();
+  if (!authed && redirectPath) {
+    window.location.hash = '#/login';
+  }
+  return authed;
+}
+
+// Auto-initialize on module load
+initAuth().catch(console.error);
