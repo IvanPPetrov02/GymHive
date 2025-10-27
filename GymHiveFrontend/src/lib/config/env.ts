@@ -34,13 +34,14 @@ function normalizeUrl(v: string): string {
 }
 
 const servicesConfig: ServicesConfig = {
-  apiGateway: normalizeUrl(import.meta.env.VITE_API_GATEWAY_URL || import.meta.env.VITE_API_URL || ''),
-  gymsService: normalizeUrl(import.meta.env.VITE_GYMS_SERVICE_URL || ''),
-  identityService: normalizeUrl(import.meta.env.VITE_IDENTITY_SERVICE_URL || ''),
-  mediaService: normalizeUrl(import.meta.env.VITE_MEDIA_SERVICE_URL || ''),
-  notificationsService: normalizeUrl(import.meta.env.VITE_NOTIFICATIONS_SERVICE_URL || ''),
-  socialFeedService: normalizeUrl(import.meta.env.VITE_SOCIAL_FEED_SERVICE_URL || ''),
-  workoutService: normalizeUrl(import.meta.env.VITE_WORKOUT_SERVICE_URL || '')
+  // Always use API Gateway - direct service URLs should not be used from frontend
+  apiGateway: normalizeUrl(import.meta.env.VITE_API_GATEWAY_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'),
+  gymsService: '', // Not used - all requests go through gateway
+  identityService: '', // Not used - all requests go through gateway
+  mediaService: '',
+  notificationsService: '',
+  socialFeedService: '',
+  workoutService: ''
 };
 
 const buildConfig: BuildConfig = {

@@ -55,12 +55,16 @@ export async function postJson<T = any, B = any>(path: string, body: B, init: Re
   return res.json();
 }
 
-export async function putJson<T = any, B = any>(path: string, body: B, init: RequestInit = {}) {
+export async function putJson<T = any, B = any>(path: string, body: B, init: RequestInit = {}): Promise<T> {
   const res = await apiFetch(path, { ...init, method: 'PUT', body: JSON.stringify(body) });
-  return res.json() as Promise<T>;
+  return res.json();
 }
 
-export async function del(path: string) {
+export async function del(path: string): Promise<void> {
+  await apiFetch(path, { method: 'DELETE' });
+}
+
+export async function deleteRequest(path: string): Promise<void> {
   await apiFetch(path, { method: 'DELETE' });
 }
 

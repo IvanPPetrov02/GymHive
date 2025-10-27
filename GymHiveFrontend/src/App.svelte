@@ -5,7 +5,7 @@
   import Home from './lib/pages/Home.svelte';
   import Gyms from './lib/pages/Gyms.svelte';
   import LoginRegister from './lib/pages/LoginRegister.svelte';
-  import Profile from './lib/pages/Profile.svelte';
+  import ProfileSimple from './lib/pages/ProfileSimple.svelte';
 
   // '/register' kept as alias to Login for backward compatibility
   const routes = {
@@ -13,7 +13,7 @@
     '/login': LoginRegister,
     '/register': LoginRegister,
     '/gyms': Gyms,
-    '/profile': Profile,
+    '/profile': ProfileSimple,
   };
 </script>
 

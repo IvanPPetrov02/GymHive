@@ -1,53 +1,41 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { requireAuth, isLoading, isAuthenticated } from '../auth/auth';
+  import { requireAuth, isLoading, isAuthenticated, user } from '../auth/auth';
+  import { gymsApi, type Gym } from '../services/gyms';
 
-  let gyms = [
-    {
-      id: 1,
-      name: 'PowerFit Gym',
-      location: 'Downtown, City Center',
-      rating: 4.5,
-      members: 1250,
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400',
-      amenities: ['Pool', 'Sauna', 'Personal Training']
-    },
-    {
-      id: 2,
-      name: 'Iron Paradise',
-      location: 'West Side, Block 5',
-      rating: 4.8,
-      members: 890,
-      image: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400',
-      amenities: ['Free Weights', 'Cardio', 'Group Classes']
-    },
-    {
-      id: 3,
-      name: 'Flex Zone',
-      location: 'East District, Main Street',
-      rating: 4.3,
-      members: 650,
-      image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=400',
-      amenities: ['Yoga Studio', 'Pilates', 'Spa']
-    }
-  ];
-
+  let gyms: Gym[] = [];
+  let loading = false;
+  let error = '';
   let searchQuery = '';
   let selectedFilter = 'all';
 
   async function loadGyms() {
-    // TODO: Connect to GymsService API
-    console.log('Loading gyms from API...');
+    loading = true;
+    error = '';
+    try {
+      gyms = await gymsApi.getAll();
+    } catch (e: any) {
+      console.error('Failed to load gyms:', e);
+      error = e.message || 'Failed to load gyms';
+    } finally {
+      loading = false;
+    }
   }
 
   $: filteredGyms = gyms.filter(gym =>
     gym.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    gym.location.toLowerCase().includes(searchQuery.toLowerCase())
+    gym.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  $: isAdmin = $user?.role === 'Admin';
+
   onMount(() => {
-    // Trigger auth requirement; if not authenticated user will be redirected to Auth0 universal login.
+    // Trigger auth requirement
     requireAuth('#/gyms');
+    // Load gyms data
+    if ($isAuthenticated) {
+      loadGyms();
+    }
   });
 </script>
 
@@ -65,6 +53,15 @@
       </div>
     </div>
 
+    <!-- Error Message -->
+    {#if error}
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-3 rounded-xl">
+          {error}
+        </div>
+      </div>
+    {/if}
+
     <!-- Search and Filters -->
     <div class="max-w-7xl mx-auto px-6 -mt-10">
       <div class="card-panel p-6">
@@ -73,7 +70,7 @@
             <input
               type="text"
               bind:value={searchQuery}
-              placeholder="Search gyms by name or location..."
+              placeholder="Search gyms by name or address..."
               class="no-border-input w-full"
             />
           </div>
@@ -86,8 +83,12 @@
             <option value="popular">Most Popular</option>
             <option value="rating">Highest Rated</option>
           </select>
-          <button on:click={loadGyms} class="btn-primary md:w-auto w-full py-3 rounded-xl shadow-lg">
-            Search
+          <button 
+            on:click={loadGyms} 
+            disabled={loading}
+            class="btn-primary md:w-auto w-full py-3 rounded-xl shadow-lg disabled:opacity-50"
+          >
+            {loading ? 'Loading...' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -95,9 +96,66 @@
 
     <!-- Gym List -->
     <div class="max-w-7xl mx-auto px-6 py-14">
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {#each filteredGyms as gym (gym.id)}
-          <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden">
+      {#if loading}
+        <div class="text-center py-20">
+          <div class="text-gray-600 animate-pulse text-lg">Loading gyms...</div>
+        </div>
+      {:else if filteredGyms.length === 0}
+        <div class="text-center py-20">
+          <div class="text-6xl mb-4">🏋️</div>
+          <h3 class="text-2xl font-bold text-gray-800 mb-2">No gyms found</h3>
+          <p class="text-gray-600">
+            {searchQuery ? 'Try a different search term' : 'No gyms available yet'}
+          </p>
+        </div>
+      {:else}
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {#each filteredGyms as gym (gym.id)}
+            <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden">
+              <div class="h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-6xl">
+                🏋️
+              </div>
+              <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">{gym.name}</h3>
+                <p class="text-gray-600 mb-4 flex items-center gap-2">
+                  <span class="text-lg">📍</span>
+                  {gym.address}
+                </p>
+                
+                {#if gym.description}
+                  <p class="text-gray-600 text-sm mb-4 line-clamp-2">{gym.description}</p>
+                {/if}
+
+                <div class="flex flex-wrap gap-2 mb-4">
+                  {#if gym.phoneNumber}
+                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">📞 {gym.phoneNumber}</span>
+                  {/if}
+                  {#if gym.email}
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">✉️ {gym.email}</span>
+                  {/if}
+                </div>
+
+                {#if gym.openingTime && gym.closingTime}
+                  <p class="text-gray-600 text-sm mb-4">
+                    ⏰ {gym.openingTime} - {gym.closingTime}
+                  </p>
+                {/if}
+
+                <div class="flex gap-3">
+                  <button class="btn-primary flex-1 py-2 rounded-xl text-sm">
+                    View Details
+                  </button>
+                  <button class="btn-outline flex-1 py-2 rounded-xl text-sm">
+                    Join
+                  </button>
+                </div>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
             <div class="h-48 bg-gray-200">
               <img src={gym.image} alt={gym.name} class="w-full h-full object-cover" />
             </div>
