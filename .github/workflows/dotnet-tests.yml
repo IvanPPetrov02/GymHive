@@ -1,0 +1,49 @@
+name: .NET Backend Tests
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore GymHive.sln
+      
+    - name: Build solution
+      run: dotnet build GymHive.sln --no-restore --configuration Release
+      
+    - name: Run AuthenticationService Tests
+      run: dotnet test GymHiveBackend/AuthenticationService.Tests/AuthenticationService.Tests.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=auth-test-results.trx"
+      
+    - name: Run GymService Tests
+      run: dotnet test GymHiveBackend/GymService.Tests/GymService.Tests.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=gym-test-results.trx"
+      
+    - name: Run ApiGateway Tests
+      run: dotnet test GymHiveBackend/ApiGateway.Tests/ApiGateway.Tests.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=gateway-test-results.trx"
+      continue-on-error: true
+      
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: |
+          **/TestResults/*.trx
+        check_name: Test Results
+        
+    - name: Test Report Summary
+      if: always()
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Tests completed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY

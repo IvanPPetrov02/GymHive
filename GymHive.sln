@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -11,6 +11,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BLL", "GymHiveBackend\AuthenticationService\BLL\BLL.csproj", "{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "GymHiveBackend\AuthenticationService\DAL\DAL.csproj", "{2288397F-55EB-C3FD-90EF-76185E271A6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationService.Tests", "GymHiveBackend\AuthenticationService.Tests\AuthenticationService.Tests.csproj", "{4B3DA133-2770-4634-BBD8-7887B2A37387}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymService.Tests", "GymHiveBackend\GymService.Tests\GymService.Tests.csproj", "{93F10226-219B-4B0D-A4B0-C787A83B83A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiGateway.Tests", "GymHiveBackend\ApiGateway.Tests\ApiGateway.Tests.csproj", "{765679B2-0C9F-4597-BAB7-9E8C6AAF19C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +36,18 @@ Global
 		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2288397F-55EB-C3FD-90EF-76185E271A6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B3DA133-2770-4634-BBD8-7887B2A37387}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B3DA133-2770-4634-BBD8-7887B2A37387}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B3DA133-2770-4634-BBD8-7887B2A37387}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B3DA133-2770-4634-BBD8-7887B2A37387}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93F10226-219B-4B0D-A4B0-C787A83B83A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93F10226-219B-4B0D-A4B0-C787A83B83A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93F10226-219B-4B0D-A4B0-C787A83B83A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93F10226-219B-4B0D-A4B0-C787A83B83A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{765679B2-0C9F-4597-BAB7-9E8C6AAF19C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{765679B2-0C9F-4597-BAB7-9E8C6AAF19C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{765679B2-0C9F-4597-BAB7-9E8C6AAF19C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{765679B2-0C9F-4597-BAB7-9E8C6AAF19C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -39,6 +57,9 @@ Global
 		{A020A010-F765-DA33-5C6C-BF6166E8D741} = {42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}
 		{AC3A2879-7B82-9B9A-2B51-C7443F7A0EC7} = {A020A010-F765-DA33-5C6C-BF6166E8D741}
 		{2288397F-55EB-C3FD-90EF-76185E271A6B} = {A020A010-F765-DA33-5C6C-BF6166E8D741}
+		{4B3DA133-2770-4634-BBD8-7887B2A37387} = {42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}
+		{93F10226-219B-4B0D-A4B0-C787A83B83A8} = {42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}
+		{765679B2-0C9F-4597-BAB7-9E8C6AAF19C7} = {42BCEF7F-5907-C9F0-10D2-65FD3F3E7639}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6C032147-0AEC-4B14-A784-EC7892DE585E}
