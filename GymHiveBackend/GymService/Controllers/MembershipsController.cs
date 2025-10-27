@@ -25,7 +25,7 @@ public class MembershipsController : ControllerBase
         // Check if user is Admin
         if (!_userContext.IsInRole("Admin"))
         {
-            return Forbid();
+            return StatusCode(403, new { error = "Forbidden" });
         }
 
         var memberships = await _membershipManager.GetAllMembershipsAsync();
@@ -67,7 +67,7 @@ public class MembershipsController : ControllerBase
         var role = _userContext.GetCurrentUserRole();
         if (role != "Admin" && role != "Moderator")
         {
-            return Forbid();
+            return StatusCode(403, new { error = "Forbidden" });
         }
 
         var memberships = await _membershipManager.GetMembershipsByGymIdAsync(gymId);
@@ -100,7 +100,7 @@ public class MembershipsController : ControllerBase
         // Check if user is Admin
         if (!_userContext.IsInRole("Admin"))
         {
-            return Forbid();
+            return StatusCode(403, new { error = "Forbidden" });
         }
 
         var result = await _membershipManager.DeleteMembershipAsync(id);

@@ -65,10 +65,13 @@ public class UserContextService : IUserContextService
         try
         {
             var userRole = GetCurrentUserRole();
+            _logger.LogInformation("IsInRole check: UserRole='{UserRole}', CheckingFor='{Role}', Match={Match}", 
+                userRole, role, userRole.Equals(role, StringComparison.OrdinalIgnoreCase));
             return userRole.Equals(role, StringComparison.OrdinalIgnoreCase);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error checking role");
             return false;
         }
     }

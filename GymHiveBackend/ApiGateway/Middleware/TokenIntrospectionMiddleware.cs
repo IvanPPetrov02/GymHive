@@ -78,14 +78,20 @@ public class TokenIntrospectionMiddleware
     {
         var publicPaths = new[]
         {
+            "/",  // Landing page
             "/health",
             "/swagger",
+            "/favicon.ico",
             "/api/auth/register",
             "/api/auth/login",
             "/api/authentication/register",
             "/api/authentication/login",
             "/api/authentication/introspect" // Allow introspection endpoint itself
         };
+
+        // Check exact match for root path
+        if (path == "/" || string.IsNullOrEmpty(path))
+            return true;
 
         return publicPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
     }

@@ -105,10 +105,69 @@ app.MapGet("/", () => Results.Content(@"
 
 app.UseCors("AllowFrontend");
 
-// Use token introspection middleware BEFORE routing
-app.UseTokenIntrospection();
+// Add token introspection middleware
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    
+    // Skip authentication for public paths
+    if (path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+        path == "/")
+    {
+        await next();
+        return;
+    }
 
-// Map reverse proxy - this will handle all /api/* routes
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var authService = context.RequestServices.GetRequiredService<IAuthServiceClient>();
+
+    // Extract Bearer token
+    var authHeader = context.Request.Headers["Authorization"].ToString();
+    if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        logger.LogWarning("No Bearer token found for path: {Path}", path);
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsJsonAsync(new { error = "Unauthorized: No token provided" });
+        return;
+    }
+
+    var token = authHeader.Substring("Bearer ".Length).Trim();
+
+    // Validate token
+    try
+    {
+        var result = await authService.IntrospectTokenAsync(token);
+
+        if (!result.Active)
+        {
+            logger.LogWarning("Invalid token for path: {Path}", path);
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "Unauthorized: Invalid token" });
+            return;
+        }
+
+        // Add user context headers - YARP will forward these
+        context.Request.Headers["X-User-Id"] = result.UserId ?? "";
+        context.Request.Headers["X-User-Email"] = result.Email ?? "";
+        context.Request.Headers["X-User-Role"] = result.Role ?? "";
+
+        logger.LogInformation("✅ Token validated for {Email} with role {Role}, headers added for {Path}",
+            result.Email, result.Role, path);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error during token introspection for path: {Path}", path);
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error during authentication" });
+        return;
+    }
+
+    await next();
+});
+
+// Map reverse proxy
 app.MapReverseProxy();
 
 // Health check endpoint
