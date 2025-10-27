@@ -42,26 +42,26 @@ export interface UpdateGymDTO {
 export const gymsApi = {
   // Get all gyms (public)
   async getAll(): Promise<Gym[]> {
-    return getJson<Gym[]>('/api/Gyms');
+    return getJson<Gym[]>('/api/gyms');
   },
 
   // Get gym by ID (public)
   async getById(id: number): Promise<Gym> {
-    return getJson<Gym>(`/api/Gyms/${id}`);
+    return getJson<Gym>(`/api/gyms/${id}`);
   },
 
   // Create gym (Admin only)
   async create(gym: CreateGymDTO): Promise<Gym> {
-    return postJson<Gym>('/api/Gyms', gym);
+    return postJson<Gym>('/api/gyms', gym);
   },
 
   // Update gym (Admin only)
   async update(id: number, gym: UpdateGymDTO): Promise<Gym> {
-    return putJson<Gym>(`/api/Gyms/${id}`, gym);
+    return putJson<Gym>(`/api/gyms/${id}`, gym);
   },
 
   // Delete gym (Admin only)
   async delete(id: number): Promise<void> {
-    return deleteRequest(`/api/Gyms/${id}`);
+    return deleteRequest(`/api/gyms/${id}`);
   }
 };

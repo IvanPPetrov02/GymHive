@@ -156,46 +156,6 @@
       {/if}
     </div>
   </div>
-            <div class="h-48 bg-gray-200">
-              <img src={gym.image} alt={gym.name} class="w-full h-full object-cover" />
-            </div>
-            <div class="p-6 flex flex-col h-full">
-              <h3 class="text-2xl font-bold text-gray-800 mb-2">{gym.name}</h3>
-              <p class="text-gray-600 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-600" viewBox="0 0 20 20" aria-hidden="true">
-                  <path fill="currentColor" fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                </svg>
-                {gym.location}
-              </p>
-              <div class="flex items-center justify-between mb-4 text-sm">
-                <div class="flex items-center gap-1 text-yellow-500 font-semibold">
-                  <span>★</span>
-                  <span class="text-gray-800">{gym.rating}</span>
-                </div>
-                <div class="text-gray-600">
-                  <span class="font-semibold">{gym.members}</span> members
-                </div>
-              </div>
-              <div class="flex flex-wrap gap-2 mb-4">
-                {#each gym.amenities as amenity}
-                  <span class="badge">{amenity}</span>
-                {/each}
-              </div>
-              <button class="btn-primary w-full py-3 rounded-lg mt-auto">
-                View Details
-              </button>
-            </div>
-          </div>
-        {/each}
-      </div>
-
-      {#if filteredGyms.length === 0}
-        <div class="text-center py-16">
-          <p class="text-gray-600 text-lg">No gyms found. Try adjusting your search.</p>
-        </div>
-      {/if}
-    </div>
-  </div>
 {:else}
   <div class="min-h-screen flex items-center justify-center bg-gray-50">
     <div class="text-center space-y-6">

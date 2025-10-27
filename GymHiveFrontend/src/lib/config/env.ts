@@ -35,7 +35,7 @@ function normalizeUrl(v: string): string {
 
 const servicesConfig: ServicesConfig = {
   // Always use API Gateway - direct service URLs should not be used from frontend
-  apiGateway: normalizeUrl(import.meta.env.VITE_API_GATEWAY_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'),
+  apiGateway: 'http://localhost:5000', // Hardcoded to ensure correct gateway URL
   gymsService: '', // Not used - all requests go through gateway
   identityService: '', // Not used - all requests go through gateway
   mediaService: '',

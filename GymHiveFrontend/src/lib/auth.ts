@@ -106,7 +106,7 @@ export async function initAuth() {
       }
 
       try {
-        const response = await fetch(`${apiBase}/api/Authentication/GetUser`, {
+        const response = await fetch(`${apiBase}/api/auth/GetUser`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ export async function login(credentials: LoginCredentials): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${apiBase}/api/Authentication/login`, {
+    const response = await fetch(`${apiBase}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials)
@@ -175,7 +175,7 @@ export async function login(credentials: LoginCredentials): Promise<boolean> {
 
     // Fetch user data after successful login
     try {
-      const userResponse = await fetch(`${apiBase}/api/Authentication/GetUser`, {
+      const userResponse = await fetch(`${apiBase}/api/auth/GetUser`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -215,7 +215,7 @@ export async function register(data: RegisterData): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${apiBase}/api/Authentication/register`, {
+    const response = await fetch(`${apiBase}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -249,7 +249,7 @@ export async function logout() {
   // Call logout endpoint if API is available
   if (apiBase) {
     try {
-      await fetch(`${apiBase}/api/Authentication/logout`, {
+      await fetch(`${apiBase}/api/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });

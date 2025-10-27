@@ -31,41 +31,41 @@ export interface UpdateMembershipDTO {
 export const membershipsApi = {
   // Get all memberships (Admin only)
   async getAll(): Promise<Membership[]> {
-    return getJson<Membership[]>('/api/Memberships');
+    return getJson<Membership[]>('/api/memberships');
   },
 
   // Get membership by ID
   async getById(id: number): Promise<Membership> {
-    return getJson<Membership>(`/api/Memberships/${id}`);
+    return getJson<Membership>(`/api/memberships/${id}`);
   },
 
   // Get memberships by user ID
   async getByUserId(userId: string): Promise<Membership[]> {
-    return getJson<Membership[]>(`/api/Memberships/user/${userId}`);
+    return getJson<Membership[]>(`/api/memberships/user/${userId}`);
   },
 
   // Get current user's memberships
   async getMyMemberships(): Promise<Membership[]> {
-    return getJson<Membership[]>('/api/Memberships/my-memberships');
+    return getJson<Membership[]>('/api/memberships/my-memberships');
   },
 
   // Get memberships by gym ID (Admin/Moderator only)
   async getByGymId(gymId: number): Promise<Membership[]> {
-    return getJson<Membership[]>(`/api/Memberships/gym/${gymId}`);
+    return getJson<Membership[]>(`/api/memberships/gym/${gymId}`);
   },
 
   // Create membership
   async create(membership: CreateMembershipDTO): Promise<Membership> {
-    return postJson<Membership>('/api/Memberships', membership);
+    return postJson<Membership>('/api/memberships', membership);
   },
 
   // Update membership
   async update(id: number, membership: UpdateMembershipDTO): Promise<Membership> {
-    return putJson<Membership>(`/api/Memberships/${id}`, membership);
+    return putJson<Membership>(`/api/memberships/${id}`, membership);
   },
 
   // Delete membership (Admin only)
   async delete(id: number): Promise<void> {
-    return deleteRequest(`/api/Memberships/${id}`);
+    return deleteRequest(`/api/memberships/${id}`);
   }
 };
