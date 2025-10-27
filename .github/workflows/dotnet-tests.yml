@@ -25,13 +25,13 @@ jobs:
       run: dotnet build GymHive.sln --no-restore --configuration Release
       
     - name: Run AuthenticationService Tests
-      run: dotnet test GymHiveBackend/AuthenticationService.Tests/AuthenticationService.Tests.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=auth-test-results.trx"
+      run: dotnet test GymHiveBackend/AuthenticationService/AuthenticationService.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=auth-test-results.trx"
       
     - name: Run GymService Tests
-      run: dotnet test GymHiveBackend/GymService.Tests/GymService.Tests.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=gym-test-results.trx"
+      run: dotnet test GymHiveBackend/GymService/GymService.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=gym-test-results.trx"
       
     - name: Run ApiGateway Tests
-      run: dotnet test GymHiveBackend/ApiGateway.Tests/ApiGateway.Tests.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=gateway-test-results.trx"
+      run: dotnet test GymHiveBackend/ApiGateway/ApiGateway.csproj --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=gateway-test-results.trx"
       continue-on-error: true
       
     - name: Publish Test Results
