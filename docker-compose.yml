@@ -39,6 +39,7 @@ services:
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
       JWT__ExpirationHours: ${JWT_EXPIRATION_HOURS:-24}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER:-GymPepper}
     ports:
       - "8080:8080"
     depends_on:
@@ -140,7 +141,8 @@ services:
       context: ./GymHiveFrontend
       dockerfile: Dockerfile
       args:
-        VITE_API_GATEWAY_URL: http://api-gateway:8080
+        # Frontend runs in browser, so must use localhost (not container name)
+        VITE_API_GATEWAY_URL: http://localhost:5000
     container_name: gymhive-frontend
     restart: unless-stopped
     ports:

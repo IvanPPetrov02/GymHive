@@ -3,7 +3,9 @@ namespace BLL.Encryption;
 
 public class PassHash
 {
-    private static string pepper = "PazarPepper";
+    // Fallback value only for development - MUST be set in production via PASSWORD_PEPPER env var
+    private static string pepper = Environment.GetEnvironmentVariable("PASSWORD_PEPPER") ?? "GymPepper";
+    
     public static string GetRandomSalt()
     {
         return BCrypt.Net.BCrypt.GenerateSalt(12);
