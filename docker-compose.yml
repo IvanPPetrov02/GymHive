@@ -114,6 +114,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      AuthService__BaseUrl: "http://auth-service:8080"
       ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address: "http://auth-service:8080"
       ReverseProxy__Clusters__gym-cluster__Destinations__destination1__Address: "http://gym-service:8080"
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
@@ -139,7 +140,7 @@ services:
       context: ./GymHiveFrontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:5000
+        VITE_API_GATEWAY_URL: http://api-gateway:8080
     container_name: gymhive-frontend
     restart: unless-stopped
     ports:
