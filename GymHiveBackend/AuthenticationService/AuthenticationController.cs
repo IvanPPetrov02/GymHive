@@ -26,6 +26,7 @@ namespace AuthenticationService.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegisterDTO userDto)
         {
@@ -77,7 +78,10 @@ namespace AuthenticationService.Controllers
         public async Task<IActionResult> GetUser(string uuid)
         {
             var user = await _userManager.GetUserByIdAsync(uuid);
-            return user != null ? Ok(user) : NotFound();
+            if (user == null) return NotFound();
+            
+            var userDto = MapUserToDto(user);
+            return Ok(userDto);
         }
 
         [Authorize]
@@ -133,7 +137,8 @@ namespace AuthenticationService.Controllers
                 return Unauthorized(new { message = "Invalid or expired token." });
             }
 
-            return Ok(user);
+            var userDto = MapUserToDto(user);
+            return Ok(userDto);
         }
 
         [Authorize]
@@ -141,7 +146,8 @@ namespace AuthenticationService.Controllers
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _userManager.GetAllUsersAsync();
-            return Ok(users);
+            var userDtos = users.Select(MapUserToDto);
+            return Ok(userDtos);
         }
 
         [Authorize(Roles = "Admin")]
@@ -227,6 +233,21 @@ namespace AuthenticationService.Controllers
             );
 
             return Ok(result);
+        }
+
+        // Helper method to map User entity to UserDTO with role as string
+        private UserDTO MapUserToDto(BLL.Entities.User user)
+        {
+            return new UserDTO
+            {
+                UUID = user.UUID.ToString(),
+                Email = user.Email,
+                Name = user.Name,
+                Surname = user.Surname,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt,
+                Role = user.Role.ToString() // Converts enum to string: "User", "Moderator", or "Admin"
+            };
         }
     }
 }

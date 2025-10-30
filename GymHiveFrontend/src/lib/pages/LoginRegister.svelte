@@ -25,7 +25,7 @@
     submitting = false;
 
     if (success) {
-      push('/');
+      push('/feed');
     } else {
       localError = $authError || 'Login failed';
     }
@@ -45,7 +45,7 @@
     submitting = false;
 
     if (success) {
-      push('/');
+      push('/feed');
     } else {
       localError = $authError || 'Registration failed';
     }

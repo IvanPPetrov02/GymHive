@@ -1,5 +1,14 @@
 <script lang="ts">
-  // Home page logic placeholder (future API hooks)
+  import { onMount } from 'svelte';
+  import { isAuthenticated } from '../auth';
+  import { replace } from 'svelte-spa-router';
+
+  onMount(() => {
+    // Redirect authenticated users to feed
+    if ($isAuthenticated) {
+      replace('/feed');
+    }
+  });
 </script>
 
 <div class="w-full min-h-screen bg-gray-50 flex flex-col">

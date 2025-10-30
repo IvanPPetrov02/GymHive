@@ -1,6 +1,6 @@
 <script lang="ts">
   import { location, push } from 'svelte-spa-router';
-  import { isAuthenticated, user } from '../auth/auth';
+  import { isAuthenticated, user } from '../auth';
   import { logout } from '../auth';
 
   let mobileMenuOpen = false;
@@ -18,7 +18,7 @@
   }
 </script>
 
-<nav class="bg-white shadow-md">
+<nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between h-16">
       <div class="flex items-center gap-10">
@@ -26,10 +26,29 @@
           <span class="text-2xl font-bold text-blue-600 tracking-tight">GymHive</span>
         </a>
         <div class="hidden md:flex md:items-center md:space-x-2">
-          <a href="#/" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Home</a>
+          {#if $isAuthenticated}
+            <a href="#/feed" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/feed') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Feed</a>
+          {:else}
+            <a href="#/" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Home</a>
+          {/if}
           <a href="#/gyms" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/gyms') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Find Gyms</a>
           {#if $isAuthenticated}
             <a href="#/profile" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/profile') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Profile</a>
+            {#if $user?.role === 'Admin'}
+              <a href="#/admin/gyms" class="px-4 py-2 rounded-lg text-sm font-medium transition {$location?.startsWith('/admin') ? 'bg-purple-600 text-white shadow-sm' : 'text-purple-600 hover:text-purple-900 hover:bg-purple-50'}">
+                <span class="flex items-center gap-1">
+                  Admin
+                  <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Panel</span>
+                </span>
+              </a>
+            {:else if $user?.role === 'Moderator'}
+              <a href="#/moderator/members" class="px-4 py-2 rounded-lg text-sm font-medium transition {$location?.startsWith('/moderator') ? 'bg-teal-600 text-white shadow-sm' : 'text-teal-600 hover:text-teal-900 hover:bg-teal-50'}">
+                <span class="flex items-center gap-1">
+                  Moderator
+                  <span class="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded">Panel</span>
+                </span>
+              </a>
+            {/if}
           {/if}
         </div>
       </div>
@@ -65,10 +84,28 @@
 
   {#if mobileMenuOpen}
     <div id="mobile-menu" class="md:hidden px-4 pb-6 space-y-2 bg-white shadow-inner">
-      <a href="#/" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Home</a>
+      {#if $isAuthenticated}
+        <a href="#/feed" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/feed') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Feed</a>
+      {:else}
+        <a href="#/" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Home</a>
+      {/if}
       <a href="#/gyms" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/gyms') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Find Gyms</a>
       {#if $isAuthenticated}
         <a href="#/profile" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/profile') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Profile</a>
+        {#if $user?.role === 'Admin'}
+          <div class="bg-purple-50 rounded-lg p-2 space-y-1">
+            <div class="text-xs font-semibold text-purple-700 px-2 py-1">Admin Panel</div>
+            <a href="#/admin/gyms" class="block px-4 py-2 rounded text-sm font-medium transition {isActive('/admin/gyms') ? 'bg-purple-600 text-white' : 'text-purple-700 hover:bg-purple-100'}">Manage Gyms</a>
+            <a href="#/admin/users" class="block px-4 py-2 rounded text-sm font-medium transition {isActive('/admin/users') ? 'bg-purple-600 text-white' : 'text-purple-700 hover:bg-purple-100'}">Manage Users</a>
+            <a href="#/admin/groups" class="block px-4 py-2 rounded text-sm font-medium transition {isActive('/admin/groups') ? 'bg-purple-600 text-white' : 'text-purple-700 hover:bg-purple-100'}">Manage Groups</a>
+          </div>
+        {:else if $user?.role === 'Moderator'}
+          <div class="bg-teal-50 rounded-lg p-2 space-y-1">
+            <div class="text-xs font-semibold text-teal-700 px-2 py-1">Moderator Panel</div>
+            <a href="#/moderator/members" class="block px-4 py-2 rounded text-sm font-medium transition {isActive('/moderator/members') ? 'bg-teal-600 text-white' : 'text-teal-700 hover:bg-teal-100'}">Group Members</a>
+            <a href="#/moderator/memberships" class="block px-4 py-2 rounded text-sm font-medium transition {isActive('/moderator/memberships') ? 'bg-teal-600 text-white' : 'text-teal-700 hover:bg-teal-100'}">Memberships</a>
+          </div>
+        {/if}
       {/if}
       <div class="h-px bg-gray-200 my-2"></div>
       {#if $isAuthenticated}

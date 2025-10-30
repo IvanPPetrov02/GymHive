@@ -111,8 +111,11 @@ app.Use(async (context, next) =>
     var path = context.Request.Path.Value ?? "";
     
     // Skip authentication for public paths
+    // Note: Check BEFORE YARP transformation (original request path)
     if (path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/api/authentication/login", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/api/authentication/register", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
         path == "/")
     {

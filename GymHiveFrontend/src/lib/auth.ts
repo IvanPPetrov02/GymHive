@@ -350,5 +350,14 @@ export async function requireAuth(redirectPath?: string): Promise<boolean> {
   return authed;
 }
 
+// Role-based guard helper
+export function requireRole(allowedRoles: string | string[]): boolean {
+  const currentUser = get(user);
+  if (!currentUser) return false;
+
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  return roles.includes(currentUser.role);
+}
+
 // Auto-initialize on module load
 initAuth().catch(console.error);
