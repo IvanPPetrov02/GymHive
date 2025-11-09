@@ -1,3 +1,4 @@
+// Version: 1.0.1 - Country-scale load testing ready
 using GymService.BLL.ManagerInterfaces;
 using GymService.BLL.Managers;
 using GymService.BLL.RepositoryInterfaces;

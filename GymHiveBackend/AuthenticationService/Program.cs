@@ -1,3 +1,4 @@
+// Version: 1.0.1 - Country-scale load testing ready
 using BLL.ManagerInterfaces;
 using BLL;
 using BLL.Services;

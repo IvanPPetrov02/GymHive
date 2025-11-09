@@ -48,6 +48,11 @@ _ReSharper*/
 ############################
 *.log
 npm-debug.log*
+
+# Load test results (can be large)
+*-results.json
+country-scale-*.json
+k6-v0.48.0-windows-amd64/
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*

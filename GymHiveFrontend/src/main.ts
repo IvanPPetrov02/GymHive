@@ -1,3 +1,4 @@
+// Version: 1.0.1 - Country-scale load testing ready
 import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
