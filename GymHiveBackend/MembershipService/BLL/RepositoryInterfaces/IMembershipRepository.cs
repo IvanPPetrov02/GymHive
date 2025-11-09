@@ -1,6 +1,6 @@
-using GymService.BLL.Entities;
+using MembershipService.BLL.Entities;
 
-namespace GymService.BLL.RepositoryInterfaces;
+namespace MembershipService.BLL.RepositoryInterfaces;
 
 public interface IMembershipRepository
 {

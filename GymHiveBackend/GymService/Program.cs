@@ -20,7 +20,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "GymHive - Gym Service API",
         Version = "v1",
-        Description = "API for managing gyms, memberships, and gym groups"
+        Description = "API for managing gyms and gym groups"
     });
 
     // Add JWT Authentication to Swagger
@@ -63,12 +63,10 @@ builder.Services.AddDbContext<GymDbContext>(options =>
 
 // Register Repositories (using BLL interfaces implemented by DAL)
 builder.Services.AddScoped<IGymRepository, GymRepository>();
-builder.Services.AddScoped<IMembershipRepository, MembershipRepository>();
 builder.Services.AddScoped<IGymGroupRepository, GymGroupRepository>();
 
 // Register Managers
 builder.Services.AddScoped<IGymManager, GymManager>();
-builder.Services.AddScoped<IMembershipManager, MembershipManager>();
 builder.Services.AddScoped<IGymGroupManager, GymGroupManager>();
 
 // Configure CORS

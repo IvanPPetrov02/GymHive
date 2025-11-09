@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # API Gateway metrics
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    metrics_path: '/metrics'
+
+  # Authentication Service metrics
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:8080']
+    metrics_path: '/metrics'
+
+  # Gym Service metrics
+  - job_name: 'gym-service'
+    static_configs:
+      - targets: ['gym-service:8080']
+    metrics_path: '/metrics'
+
+  # Membership Service metrics
+  - job_name: 'membership-service'
+    static_configs:
+      - targets: ['membership-service:8080']
+    metrics_path: '/metrics'
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,6 +1,6 @@
-using GymService.BLL.DTOs;
+using MembershipService.BLL.DTOs;
 
-namespace GymService.BLL.ManagerInterfaces;
+namespace MembershipService.BLL.ManagerInterfaces;
 
 public interface IMembershipManager
 {

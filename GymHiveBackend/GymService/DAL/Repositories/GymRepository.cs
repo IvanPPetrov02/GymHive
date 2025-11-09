@@ -17,7 +17,6 @@ public class GymRepository : IGymRepository
     public async Task<IEnumerable<Gym>> GetAllAsync()
     {
         return await _context.Gyms
-            .Include(g => g.Memberships)
             .Include(g => g.GymGroups)
             .ToListAsync();
     }
@@ -25,7 +24,6 @@ public class GymRepository : IGymRepository
     public async Task<Gym?> GetByIdAsync(int id)
     {
         return await _context.Gyms
-            .Include(g => g.Memberships)
             .Include(g => g.GymGroups)
             .FirstOrDefaultAsync(g => g.Id == id);
     }

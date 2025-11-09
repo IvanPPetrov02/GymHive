@@ -1,4 +1,4 @@
-namespace GymService.BLL.DTOs;
+namespace MembershipService.BLL.DTOs;
 
 public class MembershipDTO
 {
@@ -28,4 +28,10 @@ public class UpdateMembershipDTO
     public string? MembershipType { get; set; }
     public DateTime? EndDate { get; set; }
     public bool? IsActive { get; set; }
+}
+
+public class GymDTO
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }

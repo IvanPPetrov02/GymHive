@@ -1,9 +1,9 @@
-using GymService.BLL.DTOs;
-using GymService.BLL.ManagerInterfaces;
-using GymService.Services;
+using MembershipService.BLL.DTOs;
+using MembershipService.BLL.ManagerInterfaces;
+using MembershipService.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GymService.Controllers;
+namespace MembershipService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

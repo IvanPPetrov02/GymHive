@@ -1,19 +1,19 @@
-using GymService.BLL.DTOs;
-using GymService.BLL.Entities;
-using GymService.BLL.ManagerInterfaces;
-using GymService.BLL.RepositoryInterfaces;
+using MembershipService.BLL.DTOs;
+using MembershipService.BLL.Entities;
+using MembershipService.BLL.ManagerInterfaces;
+using MembershipService.BLL.RepositoryInterfaces;
 
-namespace GymService.BLL.Managers;
+namespace MembershipService.BLL.Managers;
 
 public class MembershipManager : IMembershipManager
 {
     private readonly IMembershipRepository _membershipRepository;
-    private readonly IGymRepository _gymRepository;
+    private readonly IGymServiceClient _gymServiceClient;
 
-    public MembershipManager(IMembershipRepository membershipRepository, IGymRepository gymRepository)
+    public MembershipManager(IMembershipRepository membershipRepository, IGymServiceClient gymServiceClient)
     {
         _membershipRepository = membershipRepository;
-        _gymRepository = gymRepository;
+        _gymServiceClient = gymServiceClient;
     }
 
     public async Task<IEnumerable<MembershipDTO>> GetAllMembershipsAsync()
@@ -27,7 +27,7 @@ public class MembershipManager : IMembershipManager
         var membership = await _membershipRepository.GetByIdAsync(id);
         if (membership == null) return null;
 
-        var gym = await _gymRepository.GetByIdAsync(membership.GymId);
+        var gym = await _gymServiceClient.GetGymByIdAsync(membership.GymId);
         return new MembershipDTO
         {
             Id = membership.Id,
@@ -69,7 +69,7 @@ public class MembershipManager : IMembershipManager
         };
 
         var createdMembership = await _membershipRepository.CreateAsync(membership);
-        var gym = await _gymRepository.GetByIdAsync(createdMembership.GymId);
+        var gym = await _gymServiceClient.GetGymByIdAsync(createdMembership.GymId);
 
         return new MembershipDTO
         {
@@ -98,7 +98,7 @@ public class MembershipManager : IMembershipManager
         var updatedMembership = await _membershipRepository.UpdateAsync(membership);
         if (updatedMembership == null) return null;
 
-        var gym = await _gymRepository.GetByIdAsync(updatedMembership.GymId);
+        var gym = await _gymServiceClient.GetGymByIdAsync(updatedMembership.GymId);
         return new MembershipDTO
         {
             Id = updatedMembership.Id,
@@ -123,7 +123,7 @@ public class MembershipManager : IMembershipManager
         var membershipDTOs = new List<MembershipDTO>();
         foreach (var membership in memberships)
         {
-            var gym = await _gymRepository.GetByIdAsync(membership.GymId);
+            var gym = await _gymServiceClient.GetGymByIdAsync(membership.GymId);
             membershipDTOs.Add(new MembershipDTO
             {
                 Id = membership.Id,

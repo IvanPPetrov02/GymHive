@@ -14,6 +14,5 @@ public class Gym
     public DateTime? UpdatedAt { get; set; }
     
     // Navigation properties
-    public ICollection<Membership> Memberships { get; set; } = new List<Membership>();
     public ICollection<GymGroup> GymGroups { get; set; } = new List<GymGroup>();
 }

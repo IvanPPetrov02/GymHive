@@ -1,37 +1,32 @@
-using GymService.BLL.Entities;
-using GymService.BLL.RepositoryInterfaces;
-using GymService.DAL.DbContexts;
+using MembershipService.BLL.Entities;
+using MembershipService.BLL.RepositoryInterfaces;
+using MembershipService.DAL.DbContexts;
 using Microsoft.EntityFrameworkCore;
 
-namespace GymService.DAL.Repositories;
+namespace MembershipService.DAL.Repositories;
 
 public class MembershipRepository : IMembershipRepository
 {
-    private readonly GymDbContext _context;
+    private readonly MembershipDbContext _context;
 
-    public MembershipRepository(GymDbContext context)
+    public MembershipRepository(MembershipDbContext context)
     {
         _context = context;
     }
 
     public async Task<IEnumerable<Membership>> GetAllAsync()
     {
-        return await _context.Memberships
-            .Include(m => m.Gym)
-            .ToListAsync();
+        return await _context.Memberships.ToListAsync();
     }
 
     public async Task<Membership?> GetByIdAsync(int id)
     {
-        return await _context.Memberships
-            .Include(m => m.Gym)
-            .FirstOrDefaultAsync(m => m.Id == id);
+        return await _context.Memberships.FirstOrDefaultAsync(m => m.Id == id);
     }
 
     public async Task<IEnumerable<Membership>> GetByUserIdAsync(Guid userId)
     {
         return await _context.Memberships
-            .Include(m => m.Gym)
             .Where(m => m.UserId == userId)
             .ToListAsync();
     }
@@ -39,7 +34,6 @@ public class MembershipRepository : IMembershipRepository
     public async Task<IEnumerable<Membership>> GetByGymIdAsync(int gymId)
     {
         return await _context.Memberships
-            .Include(m => m.Gym)
             .Where(m => m.GymId == gymId)
             .ToListAsync();
     }
