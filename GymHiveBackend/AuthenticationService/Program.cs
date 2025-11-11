@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,10 +117,17 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
+// Enable Prometheus metrics
+app.UseRouting();
+app.UseHttpMetrics();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Prometheus metrics endpoint
+app.MapMetrics();
 
 // Redirect root to Swagger
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();

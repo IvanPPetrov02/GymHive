@@ -1,6 +1,7 @@
 // Version: 1.0.1 - Country-scale load testing ready
 using ApiGateway.Services;
 using ApiGateway.Middleware;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +37,10 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Enable Prometheus metrics
+app.UseRouting();
+app.UseHttpMetrics();
 
 // Serve a simple documentation/landing page
 app.MapGet("/", () => Results.Content(@"
@@ -118,6 +123,7 @@ app.Use(async (context, next) =>
         path.StartsWith("/api/authentication/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/register", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
         path == "/")
     {
         await next();
@@ -173,6 +179,9 @@ app.Use(async (context, next) =>
 
 // Map reverse proxy
 app.MapReverseProxy();
+
+// Prometheus metrics endpoint
+app.MapMetrics();
 
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new

@@ -1,0 +1,5 @@
+# Load Test Results
+
+This directory stores auto-generated JSON results from k6 load tests.
+
+Results are automatically exported when running tests.

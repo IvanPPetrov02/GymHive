@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -133,10 +134,17 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
+// Enable Prometheus metrics
+app.UseRouting();
+app.UseHttpMetrics();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Prometheus metrics endpoint
+app.MapMetrics();
 
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "membership" }));

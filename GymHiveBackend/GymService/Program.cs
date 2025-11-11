@@ -7,6 +7,7 @@ using GymService.DAL.Repositories;
 using GymService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,9 +117,16 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
+// Enable Prometheus metrics
+app.UseRouting();
+app.UseHttpMetrics();
+
 // No authentication/authorization middleware needed
 // API Gateway handles token validation and adds user headers
 
 app.MapControllers();
+
+// Prometheus metrics endpoint
+app.MapMetrics();
 
 app.Run();

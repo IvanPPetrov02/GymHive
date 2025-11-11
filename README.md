@@ -3,6 +3,7 @@
 [![Frontend CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/FrontEndCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/FrontEndCI.yml)
 [![Authentication Service CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/AuthenticationServiceCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/AuthenticationServiceCI.yml)
 [![Gym Service CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/GymServiceCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/GymServiceCI.yml)
+[![Membership Service CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/MembershipServiceCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/MembershipServiceCI.yml)
 [![API Gateway CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/ApiGatewayCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/ApiGatewayCI.yml)
 
 Cloud-native microservices platform for gym management with membership systems, group management, and role-based administration.
@@ -12,7 +13,9 @@ Cloud-native microservices platform for gym management with membership systems, 
 ### Using Docker (Recommended)
 
 ```bash
-# Start all services
+# Pull latest images from Docker Hub and start all services
+cd deployment/docker
+docker-compose pull
 docker-compose up -d
 
 # Access the application
@@ -20,11 +23,15 @@ docker-compose up -d
 # API Gateway:      http://localhost:5000
 # Auth Service:     http://localhost:8080
 # Gym Service:      http://localhost:8081
+# Membership Service: http://localhost:8082
+# Prometheus:       http://localhost:9090
+# Grafana:          http://localhost:3001
 # Auth Database:    localhost:3307
 # Gym Database:     localhost:3308
+# Membership Database: localhost:3309
 ```
 
-See [DOCKER.md](./DOCKER.md) for detailed Docker setup and management.
+**Note**: Docker Compose now uses pre-built images from [Docker Hub](https://hub.docker.com/u/ivanppetrov) - no local build required!
 
 ### Local Development
 
@@ -50,40 +57,165 @@ npm install
 npm run dev
 ```
 
+## 🐳 Deployment Options
+
+### Docker Compose (Development & Testing)
+
+Docker Compose provides a quick way to run all services locally with monitoring:
+
+```bash
+cd deployment/docker
+docker-compose up -d
+```
+
+**What it includes:**
+- All 3 microservices (Auth, Gym, Membership)
+- API Gateway with YARP reverse proxy
+- Frontend (Svelte SPA)
+- 3 MySQL databases (one per service)
+- Prometheus for metrics collection
+- Grafana with pre-configured dashboards
+
+**Access URLs:**
+- Application: http://localhost:3000
+- Grafana: http://localhost:3001 (admin/admin)
+- Prometheus: http://localhost:9090
+
+### Kubernetes (Production-like Environment)
+
+Kubernetes deployment provides a production-ready setup with service discovery, load balancing, and horizontal scaling capabilities:
+
+```bash
+cd deployment/kubernetes
+.\deploy-k8s.ps1
+```
+
+**What it includes:**
+- All microservices deployed as Deployments
+- MySQL StatefulSets with persistent storage
+- Prometheus operator for metrics
+- Grafana with Kubernetes-specific dashboards
+- kube-state-metrics for cluster metrics
+- metrics-server for resource metrics
+
+**Access URLs:**
+- Application: http://localhost:30000 (NodePort)
+- Grafana: http://localhost:30030 (admin/admin)
+- Prometheus: http://localhost:30090
+
+**Kubernetes Features:**
+- Service discovery via DNS
+- Load balancing across pod replicas
+- Rolling updates with zero downtime
+- Resource limits and requests
+- Horizontal Pod Autoscaling (HPA) ready
+- Persistent volume claims for databases
+
+### When to Use Each
+
+| Scenario | Docker Compose | Kubernetes |
+|----------|----------------|------------|
+| Local development | ✅ Recommended | ❌ Overkill |
+| Testing changes quickly | ✅ Fast startup | ⚠️ Slower |
+| Integration testing | ✅ Good | ✅ Better |
+| Load testing | ✅ Basic | ✅ Production-like |
+| Production simulation | ⚠️ Limited | ✅ Recommended |
+| Learning K8s concepts | ❌ N/A | ✅ Perfect |
+| CI/CD pipelines | ✅ Simple | ✅ Advanced |
+
+## 📊 Monitoring with Prometheus & Grafana
+
+### Prometheus
+
+Prometheus is configured to scrape metrics from all services automatically:
+
+**Docker Compose**: Uses file-based service discovery
+- Config: `deployment/monitoring-docker/prometheus/prometheus.yml`
+- Service discovery files: `deployment/monitoring-docker/prometheus/file_sd/*.yml`
+
+**Kubernetes**: Uses Kubernetes service discovery
+- Config: `deployment/kubernetes/monitoring-k8s/prometheus.yaml`
+- Auto-discovers pods with prometheus.io annotations
+
+**Available Metrics:**
+- HTTP request rates, durations, and status codes
+- .NET runtime metrics (GC, thread pool, exceptions)
+- Database connection pool metrics
+- Custom business metrics
+
+**Useful Queries:**
+```promql
+# Request rate per service
+rate(http_requests_total[5m])
+
+# 95th percentile latency
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# Error rate
+rate(http_requests_total{status=~"5.."}[5m])
+```
+
+### Grafana Dashboards
+
+Three pre-built dashboards are included:
+
+1. **Microservices Overview** - High-level service health
+   - Request rates and error rates per service
+   - Response time percentiles (p50, p95, p99)
+   - Active requests and throughput
+
+2. **Container Metrics** - Resource utilization
+   - CPU and memory usage per container
+   - Network I/O
+   - Disk usage
+
+3. **Kubernetes Monitoring** - Cluster-level metrics
+   - Pod status and restarts
+   - Node resource usage
+   - Deployment health
+   - Persistent volume claims
+
+**Default Credentials**: admin/admin (change on first login)
+
+**Dashboard Locations:**
+- Docker: `deployment/monitoring-docker/grafana/provisioning/dashboards/`
+- K8s: Auto-provisioned from ConfigMaps
+
 ## 🏗️ Architecture
 
 This project follows a **microservices architecture** with an API Gateway pattern:
 
 ```
-┌─────────────────┐
-│   Frontend      │
-│  (Svelte SPA)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  API Gateway    │
-│   (YARP Proxy)  │
-└────┬────────┬───┘
-     │        │
-     ▼        ▼
-┌─────────┐ ┌──────────┐
-│  Auth   │ │   Gym    │
-│ Service │ │ Service  │
-└────┬────┘ └────┬─────┘
-     │           │
-     ▼           ▼
-┌─────────┐ ┌──────────┐
-│Auth DB  │ │ Gym DB   │
-│(MySQL)  │ │ (MySQL)  │
-└─────────┘ └──────────┘
+   ┌─────────────────┐
+   │   Frontend      │
+   │  (Svelte SPA)   │
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────────┐
+   │  API Gateway        │
+   │   (YARP Proxy)      │
+   └────┬────────┬─────┬─┘
+        │        │     │
+        ▼        ▼     ▼
+┌────────┐ ┌─────────┐ ┌──────────────┐
+│  Auth  │ │   Gym   │ │ Membership   │
+│Service │ │ Service │ │   Service    │
+└───┬────┘ └────┬────┘ └───────┬──────┘
+    │           │              │
+    ▼           ▼              ▼
+┌────────┐ ┌─────────┐ ┌──────────────┐
+│Auth DB │ │ Gym DB  │ │Membership DB │
+│(MySQL) │ │ (MySQL) │ │   (MySQL)    │
+└────────┘ └─────────┘ └──────────────┘
 ```
 
 ### Services
 - **Frontend**: Svelte 5 + TypeScript + Vite + TailwindCSS
 - **API Gateway**: ASP.NET Core YARP reverse proxy with authentication
 - **Authentication Service**: JWT-based user authentication and management
-- **Gym Service**: Gyms, gym groups, and membership management
+- **Gym Service**: Gyms and gym groups management
+- **Membership Service**: Membership management and operations
 - **Databases**: Separate MySQL 8.0 databases per service (database-per-service pattern)
 
 ## 🚀 CI/CD Pipelines
@@ -95,6 +227,7 @@ Each component has its own CI pipeline that only runs when relevant files are ch
 | Frontend | [![Frontend CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/FrontEndCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/FrontEndCI.yml) | Changes in `GymHiveFrontend/**` |
 | Authentication Service | [![Auth CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/AuthenticationServiceCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/AuthenticationServiceCI.yml) | Changes in `GymHiveBackend/AuthenticationService/**` |
 | Gym Service | [![Gym CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/GymServiceCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/GymServiceCI.yml) | Changes in `GymHiveBackend/GymService/**` |
+| Membership Service | [![Membership CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/MembershipServiceCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/MembershipServiceCI.yml) | Changes in `GymHiveBackend/MembershipService/**` |
 | API Gateway | [![Gateway CI](https://github.com/IvanPPetrov02/GymHive/actions/workflows/ApiGatewayCI.yml/badge.svg?branch=dev)](https://github.com/IvanPPetrov02/GymHive/actions/workflows/ApiGatewayCI.yml) | Changes in `GymHiveBackend/ApiGateway/**` |
 
 ## 📦 Project Structure
@@ -140,23 +273,56 @@ GymHive/
 │   │   ├── Tests/                # Unit tests
 │   │   └── Dockerfile
 │   │
-│   └── GymService/               # Gym Management Microservice
+│   ├── GymService/               # Gym Management Microservice
+│   │   ├── Controllers/
+│   │   │   ├── GymsController.cs
+│   │   │   ├── GymGroupsController.cs
+│   │   │   └── MembershipsController.cs
+│   │   ├── BLL/                  # Business Logic Layer
+│   │   │   ├── Managers/
+│   │   │   ├── DTOs/
+│   │   │   └── Entities/         # Gym, GymGroup, Membership entities
+│   │   ├── DAL/                  # Data Access Layer
+│   │   ├── Tests/
+│   │   └── Dockerfile
+│   │
+│   └── MembershipService/        # Membership Management Microservice
 │       ├── Controllers/
-│       │   ├── GymsController.cs
-│       │   ├── GymGroupsController.cs
-│       │   └── MembershipsController.cs
-│       ├── BLL/                  # Business Logic Layer
-│       │   ├── Managers/
-│       │   ├── DTOs/
-│       │   └── Entities/         # Gym, GymGroup, Membership entities
-│       ├── DAL/                  # Data Access Layer
-│       ├── Tests/
+│       ├── BLL/
+│       ├── DAL/
 │       └── Dockerfile
+│
+├── deployment/                   # Deployment configurations
+│   ├── docker/
+│   │   └── docker-compose.yml    # Docker Compose setup
+│   ├── kubernetes/               # Kubernetes manifests
+│   │   ├── services/             # Service deployments
+│   │   ├── databases/            # Database StatefulSets
+│   │   ├── monitoring-k8s/       # Prometheus & Grafana for K8s
+│   │   └── deploy-k8s.ps1        # Deployment script
+│   └── monitoring-docker/        # Monitoring for Docker Compose
+│       ├── prometheus/
+│       │   ├── prometheus.yml
+│       │   └── file_sd/          # Service discovery
+│       └── grafana/
+│           └── provisioning/
+│               ├── datasources/
+│               └── dashboards/   # Pre-built dashboards
+│
+├── load-tests/                   # Performance testing
+│   ├── auth-load-test.js
+│   ├── gym-load-test.js
+│   ├── full-system-test.js
+│   └── results/
+│
+├── docs/                         # Documentation
+│   └── CI_CD_SETUP_GUIDE.md
 │
 ├── .github/workflows/            # CI/CD Pipelines
 │   ├── FrontEndCI.yml
 │   ├── AuthenticationServiceCI.yml
 │   ├── GymServiceCI.yml
+│   ├── MembershipServiceCI.yml
 │   └── ApiGatewayCI.yml
 │
 ├── docker-compose.yml            # Production Docker Compose
@@ -189,9 +355,13 @@ GymHive/
 
 ### DevOps
 - **Containerization**: Docker + Docker Compose
+- **Orchestration**: Kubernetes support with manifests
 - **CI/CD**: GitHub Actions (separate pipelines per service)
+- **Monitoring**: Prometheus + Grafana with pre-built dashboards
+- **Service Discovery**: File-based service discovery for Prometheus
+- **Metrics**: prometheus-net for .NET services
+- **Load Testing**: k6 performance tests
 - **Version Control**: Git + GitHub
-- **Orchestration**: Docker Compose with health checks
 
 ## 🎨 Frontend Pages
 
@@ -283,13 +453,99 @@ All requests go through the API Gateway which handles:
 - CORS configuration
 - Health checks at `/health`
 
-## �📚 Documentation
+## 📚 Documentation
 
-- [DOCKER.md](./DOCKER.md) - Complete Docker setup and management guide
-- [.github/workflows/](./.github/workflows/) - CI/CD pipeline configurations
-- **Swagger UI**: 
-  - Auth Service: `http://localhost:8080/swagger`
-  - Gym Service: `http://localhost:8081/swagger`
+- **Deployment**:
+  - [Docker Deployment](./deployment/docker/docker-compose.yml) - Docker Compose configuration
+  - [Kubernetes Deployment](./deployment/kubernetes/) - K8s manifests and deployment scripts
+- **Monitoring**:
+  - Prometheus: `http://localhost:9090` (Docker) or `http://localhost:30090` (Kubernetes)
+  - Grafana: `http://localhost:3001` (Docker) or `http://localhost:30030` (Kubernetes)
+  - Pre-built dashboards: Microservices Overview, Container Metrics, Kubernetes Monitoring
+- **CI/CD**: [CI/CD Setup Guide](./docs/CI_CD_SETUP_GUIDE.md)
+- **API Documentation**:
+  - Auth Service Swagger: `http://localhost:8080/swagger`
+  - Gym Service Swagger: `http://localhost:8081/swagger`
+  - Membership Service Swagger: `http://localhost:8082/swagger`
+- **Load Testing**: [Load Test Guide](./load-tests/README.md) - k6 performance test scripts and results
+
+## 🚀 Performance & Load Testing
+
+The project includes comprehensive k6 load tests to validate system performance under various scenarios.
+
+### Test Scenarios
+
+| Test Script | Environment | Scenario | Purpose |
+|-------------|-------------|----------|---------|
+| `auth-load-test.js` | Docker/K8s | Authentication operations | Test login/register performance |
+| `gym-load-test.js` | Docker/K8s | Gym CRUD operations | Test gym service endpoints |
+| `full-system-test.js` | Docker/K8s | End-to-end workflows | Test complete user journeys |
+| `realistic-load-test.js` | Docker/K8s | Mixed realistic traffic | Simulate real-world usage patterns |
+| `country-scale-test.js` | Docker | Country-level load | Baseline performance testing |
+| `country-scale-peak-test.js` | Docker | Peak traffic simulation | Stress testing without scaling |
+| `country-scale-peak-test-k8s.js` | Kubernetes | Peak traffic with K8s | Test Kubernetes load balancing |
+
+### Running Load Tests
+
+**Prerequisites:**
+```bash
+# Install k6
+choco install k6  # Windows
+brew install k6   # macOS
+```
+
+**Docker Compose Environment:**
+```bash
+# Start services
+cd deployment/docker
+docker-compose up -d
+
+# Run tests
+cd ../../load-tests
+k6 run country-scale-test.js
+k6 run country-scale-peak-test.js
+```
+
+**Kubernetes Environment:**
+```bash
+# Deploy to Kubernetes
+cd deployment/kubernetes
+.\deploy-k8s.ps1
+
+# Run tests (update URLs to NodePort)
+cd ../../load-tests
+k6 run country-scale-peak-test-k8s.js
+```
+
+### Test Results & Analysis
+
+Load test results are documented in `load-tests/results/` with detailed analysis:
+
+- **Docker Compose Results**: Baseline performance metrics
+  - Single-instance deployment
+  - Resource constraints of local development
+  - Establishes performance baseline
+
+- **Kubernetes Results**: Production-like performance
+  - Multiple pod replicas with load balancing
+  - Service discovery and routing overhead
+  - Scalability validation
+
+- **Future: Kubernetes with HPA**: Auto-scaling performance
+  - Horizontal Pod Autoscaler (HPA) configuration
+  - Dynamic scaling based on CPU/memory metrics
+  - Minikube autoscaling demonstration
+  - Cost vs. performance trade-offs
+
+**Key Metrics Tracked:**
+- Request rate (requests/second)
+- Response time (p50, p95, p99 percentiles)
+- Error rate (%)
+- Concurrent users (VUs)
+- System resource usage (CPU, memory)
+- Database connection pool utilization
+
+See [load-tests/README.md](./load-tests/README.md) for detailed test results and performance analysis.
 
 ## ✨ Key Features
 
