@@ -31,15 +31,15 @@ const configs = {
   },
   kubernetes: {
     stages: [
-      { duration: '1m', target: 50 },     // Warm up
-      { duration: '2m', target: 150 },    // Ramp to 150
-      { duration: '3m', target: 300 },    // Sustained at 300
-      { duration: '2m', target: 500 },    // Peak at 500
-      { duration: '1m', target: 0 },      // Ramp down
+      { duration: '30s', target: 25 },    // Warm up
+      { duration: '1m', target: 50 },     // Ramp to 50
+      { duration: '2m', target: 100 },    // Sustained at 100
+      { duration: '1m', target: 150 },    // Peak at 150
+      { duration: '30s', target: 0 },     // Ramp down
     ],
     thresholds: {
-      http_req_duration: ['p(95)<1000'],
-      error_rate: ['rate<0.01'],
+      http_req_duration: ['p(95)<2000'],  // Same as Docker for fair comparison
+      error_rate: ['rate<0.05'],          // Same as Docker
     },
   },
   hpa: {
