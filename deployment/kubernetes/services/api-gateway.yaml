@@ -68,8 +68,9 @@ spec:
   ports:
   - port: 80
     targetPort: 8080
+    nodePort: 30500      # Maps to localhost:5000 (30000 + 500 = 30500, but we'll use port-forward or ingress for :5000)
     name: http
-  type: LoadBalancer  # Use LoadBalancer for external access
+  type: NodePort         # Use NodePort for direct access
 ---
 # Horizontal Pod Autoscaler for API Gateway
 apiVersion: autoscaling/v2
@@ -82,7 +83,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: api-gateway
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
   metrics:
   - type: Resource
@@ -90,10 +91,10 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 50
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 70

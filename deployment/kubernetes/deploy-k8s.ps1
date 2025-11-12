@@ -98,20 +98,63 @@ kubectl get hpa -n gymhive
 Write-Host ""
 Write-Host "Access Your Application:" -ForegroundColor Green
 Write-Host ""
-Write-Host "Option 1: Port Forward (Recommended)" -ForegroundColor Yellow
-Write-Host "  kubectl port-forward service/frontend 3000:80 -n gymhive" -ForegroundColor White
-Write-Host "  Then visit: http://localhost:3000" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Option 2: NodePort" -ForegroundColor Yellow
-Write-Host "  Frontend: http://localhost:30080" -ForegroundColor Cyan
-Write-Host "  Grafana:  http://localhost:30030 (admin/admin)" -ForegroundColor Cyan
-Write-Host "  Prometheus: http://localhost:30090" -ForegroundColor Cyan
+
+# Start port-forwarding automatically
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  Starting Port-Forwarding              " -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-Write-Host "Useful Commands:" -ForegroundColor Green
+# Kill any existing kubectl port-forward processes
+Get-Process | Where-Object { $_.ProcessName -eq "kubectl" -and $_.CommandLine -like "*port-forward*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+
+# Start port-forwards in background jobs
+Write-Host "Setting up port forwards..." -ForegroundColor Yellow
+
+# Frontend (main application)
+Write-Host "  - Frontend:    http://localhost:3000" -ForegroundColor Green
+Start-Job -Name "pf-frontend" -ScriptBlock {
+    kubectl port-forward service/frontend 3000:80 -n gymhive
+} | Out-Null
+
+# API Gateway (for direct API access and load testing)
+Write-Host "  - API Gateway: http://localhost:5000" -ForegroundColor Green
+Start-Job -Name "pf-api-gateway" -ScriptBlock {
+    kubectl port-forward service/api-gateway 5000:80 -n gymhive
+} | Out-Null
+
+# Grafana (monitoring)
+Write-Host "  - Grafana:     http://localhost:3001 (admin/admin)" -ForegroundColor Green
+Start-Job -Name "pf-grafana" -ScriptBlock {
+    kubectl port-forward service/grafana 3001:3000 -n gymhive
+} | Out-Null
+
+# Prometheus (metrics)
+Write-Host "  - Prometheus:  http://localhost:9090" -ForegroundColor Green
+Start-Job -Name "pf-prometheus" -ScriptBlock {
+    kubectl port-forward service/prometheus 9090:9090 -n gymhive
+} | Out-Null
+
+Start-Sleep -Seconds 3
+
 Write-Host ""
-Write-Host "View logs:        kubectl logs -f deployment/auth-service -n gymhive" -ForegroundColor White
-Write-Host "Scale service:    kubectl scale deployment auth-service --replicas=5 -n gymhive" -ForegroundColor White
-Write-Host "Watch pods:       kubectl get pods -n gymhive --watch" -ForegroundColor White
-Write-Host "Delete all:       kubectl delete namespace gymhive" -ForegroundColor White
+Write-Host "========================================" -ForegroundColor Green
+Write-Host "  Port-Forwarding Active                " -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "Access your application at:" -ForegroundColor Cyan
+Write-Host "  Frontend:    http://localhost:3000" -ForegroundColor White
+Write-Host "  API Gateway: http://localhost:5000/health" -ForegroundColor White
+Write-Host "  Grafana:     http://localhost:3001" -ForegroundColor White
+Write-Host "  Prometheus:  http://localhost:9090" -ForegroundColor White
+Write-Host ""
+
+Write-Host "Useful Commands:" -ForegroundColor Yellow
+Write-Host "  View logs:        kubectl logs -f deployment/auth-service -n gymhive" -ForegroundColor White
+Write-Host "  Scale service:    kubectl scale deployment auth-service --replicas=5 -n gymhive" -ForegroundColor White
+Write-Host "  Watch pods:       kubectl get pods -n gymhive --watch" -ForegroundColor White
+Write-Host "  Stop forwarding:  Get-Job | Stop-Job; Get-Job | Remove-Job" -ForegroundColor White
+Write-Host "  Delete all:       kubectl delete namespace gymhive" -ForegroundColor White
 Write-Host ""
