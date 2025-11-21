@@ -131,6 +131,7 @@ app.Use(async (context, next) =>
     // Note: Check BEFORE YARP transformation (original request path)
     if (path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/api/auth/GetUser", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/register", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
