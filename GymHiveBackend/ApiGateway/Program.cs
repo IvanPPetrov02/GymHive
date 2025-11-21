@@ -25,14 +25,25 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:5173",  // Vite default
-            "http://localhost:3000",  // Common frontend port
-            "http://localhost:4200"   // Angular default
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
+        // Read allowed origins from environment variable (comma-separated)
+        // Default to common development URLs if not set
+        var allowedOrigins = builder.Configuration["CorsOrigins"]
+            ?? "http://localhost:3000,http://localhost:5173,http://localhost:4200,http://127.0.0.1:3000,http://127.0.0.1:5173";
+        
+        // Support wildcard for development
+        if (allowedOrigins == "*")
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 

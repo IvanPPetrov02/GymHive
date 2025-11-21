@@ -36,6 +36,8 @@ spec:
           value: "http://gym-service:8080"
         - name: ReverseProxy__Clusters__membership-cluster__Destinations__destination1__Address
           value: "http://membership-service:8080"
+        - name: CorsOrigins
+          value: "*"  # Allow all origins for development. For production, use specific origins
         resources:
           requests:
             memory: "256Mi"
