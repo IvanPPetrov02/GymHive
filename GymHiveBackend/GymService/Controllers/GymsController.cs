@@ -2,6 +2,8 @@ using GymService.BLL.DTOs;
 using GymService.BLL.ManagerInterfaces;
 using GymService.Services;
 using Microsoft.AspNetCore.Mvc;
+using GymHive.Messaging.Interfaces;
+using GymHive.Messaging.Events;
 
 namespace GymService.Controllers;
 
@@ -11,11 +13,15 @@ public class GymsController : ControllerBase
 {
     private readonly IGymManager _gymManager;
     private readonly IUserContextService _userContext;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly ILogger<GymsController> _logger;
 
-    public GymsController(IGymManager gymManager, IUserContextService userContext)
+    public GymsController(IGymManager gymManager, IUserContextService userContext, IEventPublisher eventPublisher, ILogger<GymsController> logger)
     {
         _gymManager = gymManager;
         _userContext = userContext;
+        _eventPublisher = eventPublisher;
+        _logger = logger;
     }
 
     // Public - Anyone can view gyms
@@ -46,6 +52,24 @@ public class GymsController : ControllerBase
         }
 
         var gym = await _gymManager.CreateGymAsync(createGymDto);
+        
+        // Publish GymCreatedEvent to RabbitMQ
+        try
+        {
+            await _eventPublisher.PublishAsync(new GymCreatedEvent
+            {
+                GymId = gym.Id,
+                Name = gym.Name,
+                Location = gym.Address,
+                CreatedBy = 0 // TODO: Fix user ID type mismatch (Guid vs int)
+            });
+            _logger.LogInformation($"Published GymCreatedEvent for gym {gym.Name}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish GymCreatedEvent");
+        }
+        
         return CreatedAtAction(nameof(GetGymById), new { id = gym.Id }, gym);
     }
 

@@ -1,7 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace MembershipService.BLL.Entities;
 
 public class Membership
 {
+    [Key]
+    [BsonId]
+    [BsonRepresentation(BsonType.Int32)]
     public int Id { get; set; }
     public Guid UserId { get; set; } // Foreign key to User UUID from AuthenticationService
     public int GymId { get; set; } // Foreign key to Gym from GymService

@@ -1,0 +1,723 @@
+{
+  "info": {
+    "name": "GymHive API - Complete Test Suite",
+    "description": "Comprehensive Postman collection for testing all GymHive microservices through the API Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gateway_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gym_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "workout_log_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Gateway Health Check",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/health",
+              "host": ["{{gateway_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Gateway Landing Page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/",
+              "host": ["{{gateway_url}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Authentication Service",
+      "item": [
+        {
+          "name": "Register Member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.token);",
+                  "        console.log('✅ Token saved:', response.token.substring(0, 20) + '...');",
+                  "    }",
+                  "    if (response.userId || response.user?.id) {",
+                  "        const userId = response.userId || response.user.id;",
+                  "        pm.collectionVariables.set('user_id', userId);",
+                  "        console.log('✅ User ID saved:', userId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testmember@gymhive.com\",\n  \"password\": \"Test123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"Member\",\n  \"dateOfBirth\": \"1995-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/register",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.token);",
+                  "        console.log('✅ Token saved:', response.token.substring(0, 20) + '...');",
+                  "    }",
+                  "    if (response.userId || response.user?.id) {",
+                  "        const userId = response.userId || response.user.id;",
+                  "        pm.collectionVariables.set('user_id', userId);",
+                  "        console.log('✅ User ID saved:', userId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testmember@gymhive.com\",\n  \"password\": \"Test123!\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/login",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/me",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Gym Service",
+      "item": [
+        {
+          "name": "Get All Gyms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/gyms",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "gyms"]
+            }
+          }
+        },
+        {
+          "name": "Get Gym By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/gyms/{{gym_id}}",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "gyms", "{{gym_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Search Gyms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/gyms/search?searchTerm=gym&city=Sofia",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "gyms", "search"],
+              "query": [
+                {
+                  "key": "searchTerm",
+                  "value": "gym"
+                },
+                {
+                  "key": "city",
+                  "value": "Sofia"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Membership Service",
+      "item": [
+        {
+          "name": "Get My Memberships",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/memberships/my-memberships",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "memberships", "my-memberships"]
+            }
+          }
+        },
+        {
+          "name": "Get Membership Plans for Gym",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/memberships/gym/{{gym_id}}/plans",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "memberships", "gym", "{{gym_id}}", "plans"]
+            }
+          }
+        },
+        {
+          "name": "Purchase Membership",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"membershipPlanId\": 1,\n  \"paymentMethod\": \"CreditCard\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/memberships/purchase",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "memberships", "purchase"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Notifications Service",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/notifications?skip=0&take=20",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "notifications"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/notifications/unread/count",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "notifications", "unread", "count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/notifications/1/read",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "notifications", "1", "read"]
+            }
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/notifications/read-all",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "notifications", "read-all"]
+            }
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/notifications/1",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "notifications", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Workout Logging Service",
+      "item": [
+        {
+          "name": "Check In to Gym",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.id) {",
+                  "        pm.collectionVariables.set('workout_log_id', response.id);",
+                  "        console.log('✅ Workout Log ID saved:', response.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gymId\": {{gym_id}}\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/workouts/checkin",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "workouts", "checkin"]
+            }
+          }
+        },
+        {
+          "name": "Get My Workout Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/workouts/my-logs?skip=0&take=20",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "workouts", "my-logs"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Workout Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/workouts/stats",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "workouts", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Check Out from Gym",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gateway_url}}/api/workouts/{{workout_log_id}}/checkout",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "workouts", "{{workout_log_id}}", "checkout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Integration Tests",
+      "item": [
+        {
+          "name": "Full Member Journey",
+          "item": [
+            {
+              "name": "1. Register",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Registration successful', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    if (response.token) {",
+                      "        pm.collectionVariables.set('auth_token', response.token);",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"journey@gymhive.com\",\n  \"password\": \"Test123!\",\n  \"firstName\": \"Journey\",\n  \"lastName\": \"Test\",\n  \"dateOfBirth\": \"1990-05-20\"\n}"
+                },
+                "url": {
+                  "raw": "{{gateway_url}}/api/auth/register",
+                  "host": ["{{gateway_url}}"],
+                  "path": ["api", "auth", "register"]
+                }
+              }
+            },
+            {
+              "name": "2. Find Gym",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Gyms retrieved', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{gateway_url}}/api/gyms",
+                  "host": ["{{gateway_url}}"],
+                  "path": ["api", "gyms"]
+                }
+              }
+            },
+            {
+              "name": "3. Check In",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Check-in successful', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    if (response.id) {",
+                      "        pm.collectionVariables.set('workout_log_id', response.id);",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"gymId\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{gateway_url}}/api/workouts/checkin",
+                  "host": ["{{gateway_url}}"],
+                  "path": ["api", "workouts", "checkin"]
+                }
+              }
+            },
+            {
+              "name": "4. Check Notifications",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Notifications retrieved', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{gateway_url}}/api/notifications",
+                  "host": ["{{gateway_url}}"],
+                  "path": ["api", "notifications"]
+                }
+              }
+            },
+            {
+              "name": "5. Check Out",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Check-out successful', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{gateway_url}}/api/workouts/{{workout_log_id}}/checkout",
+                  "host": ["{{gateway_url}}"],
+                  "path": ["api", "workouts", "{{workout_log_id}}", "checkout"]
+                }
+              }
+            },
+            {
+              "name": "6. View Stats",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Stats retrieved', function() {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Stats show completed workout', function() {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.totalWorkouts).to.be.above(0);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{gateway_url}}/api/workouts/stats",
+                  "host": ["{{gateway_url}}"],
+                  "path": ["api", "workouts", "stats"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,8 @@ using GymService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Prometheus;
+using GymHive.Messaging.Interfaces;
+using GymHive.Messaging.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +72,15 @@ builder.Services.AddScoped<IGymGroupRepository, GymGroupRepository>();
 // Register Managers
 builder.Services.AddScoped<IGymManager, GymManager>();
 builder.Services.AddScoped<IGymGroupManager, GymGroupManager>();
+
+// Configure RabbitMQ Event Bus
+var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ");
+var rabbitMqConnection = $"amqp://{rabbitMqConfig["UserName"]}:{rabbitMqConfig["Password"]}@{rabbitMqConfig["HostName"]}:{rabbitMqConfig["Port"]}{rabbitMqConfig["VirtualHost"]}";
+builder.Services.AddSingleton<IEventPublisher>(sp => 
+{
+    var logger = sp.GetRequiredService<ILogger<RabbitMQEventPublisher>>();
+    return new RabbitMQEventPublisher(rabbitMqConnection, logger);
+});
 
 // Configure CORS
 builder.Services.AddCors(options =>

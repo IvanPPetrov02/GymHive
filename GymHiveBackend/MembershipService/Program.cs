@@ -11,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Prometheus;
+using GymHive.Messaging.Interfaces;
+using GymHive.Messaging.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,16 +68,29 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Configure MongoDB Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "mongodb://localhost:27017";
+var databaseName = builder.Configuration.GetValue<string>("ConnectionStrings:DatabaseName") 
+    ?? "GymHiveMemberships";
+
 builder.Services.AddDbContext<MembershipDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMongoDB(connectionString, databaseName));
 
 // Register Repositories
 builder.Services.AddScoped<IMembershipRepository, MembershipRepository>();
 
 // Register Managers
 builder.Services.AddScoped<IMembershipManager, MembershipManager>();
+
+// Configure RabbitMQ Event Bus
+var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ");
+var rabbitMqConnection = $"amqp://{rabbitMqConfig["UserName"]}:{rabbitMqConfig["Password"]}@{rabbitMqConfig["HostName"]}:{rabbitMqConfig["Port"]}{rabbitMqConfig["VirtualHost"]}";
+builder.Services.AddSingleton<IEventPublisher>(sp => 
+{
+    var logger = sp.GetRequiredService<ILogger<RabbitMQEventPublisher>>();
+    return new RabbitMQEventPublisher(rabbitMqConnection, logger);
+});
 
 // Register Services
 builder.Services.AddHttpContextAccessor();
@@ -113,20 +128,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Run migrations automatically
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var dbContext = services.GetRequiredService<MembershipDbContext>();
-        dbContext.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
-    }
-}
+// MongoDB creates databases and collections automatically - no migration needed
 
 // Configure the HTTP request pipeline
 app.UseSwagger();

@@ -2,6 +2,8 @@ using MembershipService.BLL.DTOs;
 using MembershipService.BLL.ManagerInterfaces;
 using MembershipService.Services;
 using Microsoft.AspNetCore.Mvc;
+using GymHive.Messaging.Interfaces;
+using GymHive.Messaging.Events;
 
 namespace MembershipService.Controllers;
 
@@ -11,11 +13,15 @@ public class MembershipsController : ControllerBase
 {
     private readonly IMembershipManager _membershipManager;
     private readonly IUserContextService _userContext;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly ILogger<MembershipsController> _logger;
 
-    public MembershipsController(IMembershipManager membershipManager, IUserContextService userContext)
+    public MembershipsController(IMembershipManager membershipManager, IUserContextService userContext, IEventPublisher eventPublisher, ILogger<MembershipsController> logger)
     {
         _membershipManager = membershipManager;
         _userContext = userContext;
+        _eventPublisher = eventPublisher;
+        _logger = logger;
     }
 
     // Admin only - View all memberships
@@ -81,6 +87,26 @@ public class MembershipsController : ControllerBase
         // Get user ID from headers
         var userId = _userContext.GetCurrentUserId();
         var membership = await _membershipManager.CreateMembershipAsync(userId, createMembershipDto);
+        
+        // Publish MembershipPurchasedEvent to RabbitMQ
+        try
+        {
+            await _eventPublisher.PublishAsync(new MembershipPurchasedEvent
+            {
+                MembershipId = membership.Id,
+                UserId = userId.GetHashCode(), // Convert Guid to int for event (temporary solution)
+                GymId = membership.GymId,
+                StartDate = membership.StartDate,
+                EndDate = membership.EndDate,
+                Price = membership.Price
+            });
+            _logger.LogInformation($"Published MembershipPurchasedEvent for membership {membership.Id} with price {membership.Price}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish MembershipPurchasedEvent");
+        }
+        
         return CreatedAtAction(nameof(GetMembershipById), new { id = membership.Id }, membership);
     }
 

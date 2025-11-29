@@ -11,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Prometheus;
+using GymHive.Messaging.Interfaces;
+using GymHive.Messaging.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +79,15 @@ builder.Services.AddScoped<IUserDAO, UserRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ITokenValidationService, TokenValidationService>();
+
+// Configure RabbitMQ Event Bus
+var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ");
+var rabbitMqConnection = $"amqp://{rabbitMqConfig["UserName"]}:{rabbitMqConfig["Password"]}@{rabbitMqConfig["HostName"]}:{rabbitMqConfig["Port"]}{rabbitMqConfig["VirtualHost"]}";
+builder.Services.AddSingleton<IEventPublisher>(sp => 
+{
+    var logger = sp.GetRequiredService<ILogger<RabbitMQEventPublisher>>();
+    return new RabbitMQEventPublisher(rabbitMqConnection, logger);
+});
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["AppSettings:Token"] ?? throw new InvalidOperationException("JWT token key not configured");

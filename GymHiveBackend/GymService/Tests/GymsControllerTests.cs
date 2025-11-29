@@ -6,6 +6,8 @@ using GymService.Services;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
+using GymHive.Messaging.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace GymService.Tests;
 
@@ -13,13 +15,17 @@ public class GymsControllerTests
 {
     private readonly Mock<IGymManager> _mockGymManager;
     private readonly Mock<IUserContextService> _mockUserContext;
+    private readonly Mock<IEventPublisher> _mockEventPublisher;
+    private readonly Mock<ILogger<GymsController>> _mockLogger;
     private readonly GymsController _controller;
 
     public GymsControllerTests()
     {
         _mockGymManager = new Mock<IGymManager>();
         _mockUserContext = new Mock<IUserContextService>();
-        _controller = new GymsController(_mockGymManager.Object, _mockUserContext.Object);
+        _mockEventPublisher = new Mock<IEventPublisher>();
+        _mockLogger = new Mock<ILogger<GymsController>>();
+        _controller = new GymsController(_mockGymManager.Object, _mockUserContext.Object, _mockEventPublisher.Object, _mockLogger.Object);
     }
 
     #region GetAllGyms Tests

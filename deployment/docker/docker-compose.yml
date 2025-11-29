@@ -1,7 +1,51 @@
 version: '3.8'
 
 services:
-  # MySQL Database for Authentication Service
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: gymhive-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-gymhive}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-GymHive123!}
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MongoDB Database (replaces MySQL databases)
+  mongodb:
+    image: mongo:7.0
+    container_name: gymhive-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-RootPassword123!}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-gymhive}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MySQL Database for Authentication Service (DEPRECATED - will be removed)
   auth-db:
     image: mysql:8.0
     container_name: gymhive-auth-db
@@ -268,6 +312,10 @@ networks:
     driver: bridge
 
 volumes:
+  rabbitmq-data:
+    driver: local
+  mongodb-data:
+    driver: local
   auth-db-data:
     driver: local
   gym-db-data:

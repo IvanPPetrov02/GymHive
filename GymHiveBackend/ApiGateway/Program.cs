@@ -102,8 +102,32 @@ app.MapGet("/", () => Results.Content(@"
             <h3>🏢 Gym Service</h3>
             <p><strong>Port:</strong> 5001</p>
             <p><strong>Swagger:</strong> <a href='http://localhost:5001/swagger' target='_blank'>http://localhost:5001/swagger</a></p>
-            <p><strong>Via Gateway:</strong> <code>http://localhost:5000/api/gyms/*</code>, <code>/api/memberships/*</code>, <code>/api/gymgroups/*</code></p>
-            <p>Manages gyms, memberships, and gym groups</p>
+            <p><strong>Via Gateway:</strong> <code>http://localhost:5000/api/gyms/*</code>, <code>/api/gymgroups/*</code></p>
+            <p>Manages gyms and gym groups</p>
+        </div>
+
+        <div class='service'>
+            <h3>👥 Membership Service</h3>
+            <p><strong>Port:</strong> 5002</p>
+            <p><strong>Swagger:</strong> <a href='http://localhost:5002/swagger' target='_blank'>http://localhost:5002/swagger</a></p>
+            <p><strong>Via Gateway:</strong> <code>http://localhost:5000/api/memberships/*</code></p>
+            <p>Manages gym memberships and subscriptions</p>
+        </div>
+
+        <div class='service'>
+            <h3>🔔 Notifications Service</h3>
+            <p><strong>Port:</strong> 5003</p>
+            <p><strong>Swagger:</strong> <a href='http://localhost:5003/swagger' target='_blank'>http://localhost:5003/swagger</a></p>
+            <p><strong>Via Gateway:</strong> <code>http://localhost:5000/api/notifications/*</code></p>
+            <p>Manages in-app notifications and event-driven messaging</p>
+        </div>
+
+        <div class='service'>
+            <h3>💪 Workout Logging Service</h3>
+            <p><strong>Port:</strong> 5004</p>
+            <p><strong>Swagger:</strong> <a href='http://localhost:5004/swagger' target='_blank'>http://localhost:5004/swagger</a></p>
+            <p><strong>Via Gateway:</strong> <code>http://localhost:5000/api/workouts/*</code></p>
+            <p>Tracks gym check-ins, check-outs, and workout statistics</p>
         </div>
 
         <h2>🚀 Quick Start</h2>
@@ -131,7 +155,6 @@ app.Use(async (context, next) =>
     // Note: Check BEFORE YARP transformation (original request path)
     if (path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/api/auth/GetUser", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/register", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
@@ -205,7 +228,10 @@ app.MapGet("/health", () => Results.Ok(new
     services = new
     {
         authService = new { url = "http://localhost:5010", status = "check /api/auth/health" },
-        gymService = new { url = "http://localhost:5001", status = "check /api/gyms/health" }
+        gymService = new { url = "http://localhost:5001", status = "check /api/gyms/health" },
+        membershipService = new { url = "http://localhost:5002", status = "check /api/memberships/health" },
+        notificationsService = new { url = "http://localhost:5003", status = "check /api/notifications/health" },
+        workoutsService = new { url = "http://localhost:5004", status = "check /api/workouts/health" }
     }
 })).ExcludeFromDescription();
 

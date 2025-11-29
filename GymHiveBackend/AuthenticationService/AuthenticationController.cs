@@ -5,6 +5,8 @@ using BLL.DTOs;
 using BLL.ManagerInterfaces;
 using BLL.Services;
 using Microsoft.Extensions.Logging;
+using GymHive.Messaging.Interfaces;
+using GymHive.Messaging.Events;
 
 namespace AuthenticationService.Controllers
 {
@@ -15,15 +17,18 @@ namespace AuthenticationService.Controllers
         private readonly IUserManager _userManager;
         private readonly ITokenValidationService _tokenValidationService;
         private readonly ILogger<AuthenticationController> _logger;
+        private readonly IEventPublisher _eventPublisher;
 
         public AuthenticationController(
             IUserManager userManager, 
             ITokenValidationService tokenValidationService,
-            ILogger<AuthenticationController> logger)
+            ILogger<AuthenticationController> logger,
+            IEventPublisher eventPublisher)
         {
             _userManager = userManager;
             _tokenValidationService = tokenValidationService;
             _logger = logger;
+            _eventPublisher = eventPublisher;
         }
 
         [AllowAnonymous]
@@ -39,6 +44,25 @@ namespace AuthenticationService.Controllers
                 if (result == "User created")
                 {
                     _logger.LogInformation("User created successfully");
+                    
+                    // Publish UserRegisteredEvent to RabbitMQ
+                    try
+                    {
+                        await _eventPublisher.PublishAsync(new UserRegisteredEvent
+                        {
+                            UserId = 0, // TODO: Get actual user ID from manager after registration
+                            Email = userDto.Email,
+                            Username = userDto.Email,
+                            RoleId = 1 // Default role
+                        });
+                        _logger.LogInformation($"Published UserRegisteredEvent for {userDto.Email}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to publish UserRegisteredEvent");
+                        // Don't fail the registration if event publishing fails
+                    }
+                    
                     return Ok(new { message = result });
                 }
                 else
