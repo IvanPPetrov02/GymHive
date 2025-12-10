@@ -80,9 +80,11 @@ services:
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
       JWT__ExpirationHours: ${JWT_EXPIRATION_HOURS:-24}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:-GymPepper}
-      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
-      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__HostName: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMQ__UserName: ${RABBITMQ_USER:-gymhive}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/}
     ports:
       - "8080:8080"
     depends_on:
@@ -134,9 +136,11 @@ services:
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
-      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
-      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__HostName: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMQ__UserName: ${RABBITMQ_USER:-gymhive}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/}
     ports:
       - "8081:8080"
     depends_on:
@@ -166,9 +170,11 @@ services:
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLongForJWT}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
-      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
-      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__HostName: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMQ__UserName: ${RABBITMQ_USER:-gymhive}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/}
       GymService__BaseUrl: "http://gym-service:8080"
     ports:
       - "8082:8080"
@@ -223,11 +229,13 @@ services:
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
-      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
-      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__HostName: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMQ__UserName: ${RABBITMQ_USER:-gymhive}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/}
     ports:
-      - "8083:8080"
+      - "8085:8080"
     depends_on:
       notifications-db:
         condition: service_healthy
@@ -277,9 +285,11 @@ services:
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
-      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
-      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__HostName: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMQ__UserName: ${RABBITMQ_USER:-gymhive}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/}
     ports:
       - "8084:8080"
     depends_on:
