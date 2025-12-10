@@ -78,9 +78,9 @@ builder.Services.AddCors(options =>
 });
 
 // Configure MongoDB Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetValue<string>("MongoDB:ConnectionString") 
     ?? "mongodb://localhost:27017";
-var databaseName = builder.Configuration.GetValue<string>("ConnectionStrings:DatabaseName") 
+var databaseName = builder.Configuration.GetValue<string>("MongoDB:DatabaseName") 
     ?? "GymHiveMemberships";
 
 builder.Services.AddDbContext<MembershipDbContext>(options =>
