@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # RabbitMQ Message Broker
   rabbitmq:
@@ -82,10 +80,15 @@ services:
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
       JWT__ExpirationHours: ${JWT_EXPIRATION_HOURS:-24}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:-GymPepper}
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
     ports:
       - "8080:8080"
     depends_on:
       auth-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - gymhive-network
@@ -131,10 +134,15 @@ services:
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
     ports:
       - "8081:8080"
     depends_on:
       gym-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - gymhive-network
@@ -145,29 +153,6 @@ services:
       retries: 5
       start_period: 60s
 
-  # MySQL Database for Membership Service
-  membership-db:
-    image: mysql:8.0
-    container_name: gymhive-membership-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MEMBERSHIP_DB_ROOT_PASSWORD:-RootPassword123}
-      MYSQL_DATABASE: ${MEMBERSHIP_DB_NAME:-GymHiveMemberships}
-      MYSQL_USER: ${MEMBERSHIP_DB_USER:-gymhive_user}
-      MYSQL_PASSWORD: ${MEMBERSHIP_DB_PASSWORD:-GymHive123}
-    ports:
-      - "3309:3306"
-    volumes:
-      - membership-db-data:/var/lib/mysql
-    networks:
-      - gymhive-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MEMBERSHIP_DB_ROOT_PASSWORD:-RootPassword123}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
   # Membership Service
   membership-service:
     image: ivanppetrov/gymhive-membership-service:latest
@@ -176,18 +161,132 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Server=membership-db;Port=3306;Database=${MEMBERSHIP_DB_NAME:-GymHiveMemberships};User=${MEMBERSHIP_DB_USER:-gymhive_user};Password=${MEMBERSHIP_DB_PASSWORD:-GymHive123};"
+      MongoDB__ConnectionString: ${MONGODB_CONNECTION_STRING:-mongodb://root:RootPassword123!@mongodb:27017}
+      MongoDB__DatabaseName: ${MONGODB_DATABASE_NAME:-GymHiveMembershipsV2}
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLongForJWT}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
       GymService__BaseUrl: "http://gym-service:8080"
     ports:
       - "8082:8080"
     depends_on:
-      membership-db:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       gym-service:
         condition: service_started
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # MySQL Database for Notifications Service
+  notifications-db:
+    image: mysql:8.0
+    container_name: gymhive-notifications-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${NOTIFICATIONS_DB_ROOT_PASSWORD:-RootPassword123!}
+      MYSQL_DATABASE: ${NOTIFICATIONS_DB_NAME:-GymHiveNotifications}
+      MYSQL_USER: ${NOTIFICATIONS_DB_USER:-gymhive_user}
+      MYSQL_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:-GymHive123!}
+    ports:
+      - "3309:3306"
+    volumes:
+      - notifications-db-data:/var/lib/mysql
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${NOTIFICATIONS_DB_ROOT_PASSWORD:-RootPassword123!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Notifications Service
+  notifications-service:
+    image: ivanppetrov/gymhive-notifications-service:latest
+    container_name: gymhive-notifications-service
+    restart: on-failure:5
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=notifications-db;Port=3306;Database=${NOTIFICATIONS_DB_NAME:-GymHiveNotifications};User=${NOTIFICATIONS_DB_USER:-gymhive_user};Password=${NOTIFICATIONS_DB_PASSWORD:-GymHive123!};"
+      JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
+      JWT__Issuer: ${JWT_ISSUER:-GymHive}
+      JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+    ports:
+      - "8083:8080"
+    depends_on:
+      notifications-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # MySQL Database for Workout Logging Service
+  workout-db:
+    image: mysql:8.0
+    container_name: gymhive-workout-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${WORKOUT_DB_ROOT_PASSWORD:-RootPassword123!}
+      MYSQL_DATABASE: ${WORKOUT_DB_NAME:-GymHiveWorkoutLogs}
+      MYSQL_USER: ${WORKOUT_DB_USER:-gymhive_user}
+      MYSQL_PASSWORD: ${WORKOUT_DB_PASSWORD:-GymHive123!}
+    ports:
+      - "3310:3306"
+    volumes:
+      - workout-db-data:/var/lib/mysql
+    networks:
+      - gymhive-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${WORKOUT_DB_ROOT_PASSWORD:-RootPassword123!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Workout Logging Service
+  workout-service:
+    image: ivanppetrov/gymhive-workout-service:latest
+    container_name: gymhive-workout-service
+    restart: on-failure:5
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=workout-db;Port=3306;Database=${WORKOUT_DB_NAME:-GymHiveWorkoutLogs};User=${WORKOUT_DB_USER:-gymhive_user};Password=${WORKOUT_DB_PASSWORD:-GymHive123!};"
+      JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
+      JWT__Issuer: ${JWT_ISSUER:-GymHive}
+      JWT__Audience: ${JWT_AUDIENCE:-GymHive}
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Username: ${RABBITMQ_USER:-gymhive}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-GymHive123!}
+    ports:
+      - "8084:8080"
+    depends_on:
+      workout-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - gymhive-network
     healthcheck:
@@ -209,6 +308,8 @@ services:
       ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address: "http://auth-service:8080"
       ReverseProxy__Clusters__gym-cluster__Destinations__destination1__Address: "http://gym-service:8080"
       ReverseProxy__Clusters__membership-cluster__Destinations__destination1__Address: "http://membership-service:8080"
+      ReverseProxy__Clusters__notifications-cluster__Destinations__destination1__Address: "http://notifications-service:8080"
+      ReverseProxy__Clusters__workout-cluster__Destinations__destination1__Address: "http://workout-service:8080"
       JWT__Secret: ${JWT_SECRET:-YourSuperSecretKeyThatIsAtLeast32CharactersLong!}
       JWT__Issuer: ${JWT_ISSUER:-GymHive}
       JWT__Audience: ${JWT_AUDIENCE:-GymHive}
@@ -218,6 +319,8 @@ services:
       - auth-service
       - gym-service
       - membership-service
+      - notifications-service
+      - workout-service
     networks:
       - gymhive-network
     healthcheck:
@@ -320,7 +423,9 @@ volumes:
     driver: local
   gym-db-data:
     driver: local
-  membership-db-data:
+  notifications-db-data:
+    driver: local
+  workout-db-data:
     driver: local
   prometheus-data:
     driver: local

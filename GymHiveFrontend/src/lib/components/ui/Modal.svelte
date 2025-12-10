@@ -39,14 +39,14 @@
   <div class="fixed inset-0 z-50 overflow-y-auto">
     <!-- Backdrop -->
     <div 
-      class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+      class="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
       on:click={handleBackdropClick}
     ></div>
     
     <!-- Modal -->
     <div class="flex min-h-full items-center justify-center p-4">
       <div 
-        class="relative bg-white rounded-2xl shadow-2xl w-full {sizes[size]} transform transition-all"
+        class="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full {sizes[size]} transform transition-all"
         on:click|stopPropagation
       >
         <!-- Header -->

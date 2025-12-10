@@ -10,6 +10,7 @@ export interface Membership {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  autoRenew: boolean;
   price: number;
 }
 
@@ -19,12 +20,14 @@ export interface CreateMembershipDTO {
   startDate: string;
   endDate: string;
   price: number;
+  autoRenew: boolean;
 }
 
 export interface UpdateMembershipDTO {
   membershipType?: string;
   endDate?: string;
   isActive?: boolean;
+  autoRenew?: boolean;
 }
 
 // Membership API endpoints

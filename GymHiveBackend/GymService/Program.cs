@@ -81,6 +81,14 @@ builder.Services.AddSingleton<IEventPublisher>(sp =>
     var logger = sp.GetRequiredService<ILogger<RabbitMQEventPublisher>>();
     return new RabbitMQEventPublisher(rabbitMqConnection, logger);
 });
+builder.Services.AddSingleton<IEventSubscriber>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<RabbitMQEventSubscriber>>();
+    return new RabbitMQEventSubscriber(rabbitMqConnection, "gym-service", logger);
+});
+
+// Register Background Services
+builder.Services.AddHostedService<GymEventConsumer>();
 
 // Configure CORS
 builder.Services.AddCors(options =>

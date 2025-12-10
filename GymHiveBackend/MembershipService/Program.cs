@@ -13,6 +13,15 @@ using System.Text;
 using Prometheus;
 using GymHive.Messaging.Interfaces;
 using GymHive.Messaging.RabbitMQ;
+using MongoDB.Driver;
+using MongoDB.Bson;
+
+// Run migration if --migrate argument is provided
+if (args.Length > 0 && args[0] == "--migrate")
+{
+    await MigrateMemberships();
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +100,11 @@ builder.Services.AddSingleton<IEventPublisher>(sp =>
     var logger = sp.GetRequiredService<ILogger<RabbitMQEventPublisher>>();
     return new RabbitMQEventPublisher(rabbitMqConnection, logger);
 });
+builder.Services.AddSingleton<IEventSubscriber>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<RabbitMQEventSubscriber>>();
+    return new RabbitMQEventSubscriber(rabbitMqConnection, "membership-service", logger);
+});
 
 // Register Services
 builder.Services.AddHttpContextAccessor();
@@ -100,6 +114,10 @@ builder.Services.AddHttpClient<IGymServiceClient, GymServiceClient>(client =>
     var gymServiceUrl = builder.Configuration["GymService:BaseUrl"] ?? "http://localhost:5001";
     client.BaseAddress = new Uri(gymServiceUrl);
 });
+
+// Register Background Services
+builder.Services.AddHostedService<MembershipExpirationService>();
+builder.Services.AddHostedService<MembershipEventConsumer>();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["AppSettings:Token"] ?? throw new InvalidOperationException("JWT token key not configured");
@@ -152,3 +170,22 @@ app.MapMetrics();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "membership" }));
 
 app.Run();
+
+static async Task MigrateMemberships()
+{
+    Console.WriteLine("Running membership migration...");
+    var connectionString = "mongodb://localhost:27017";
+    var client = new MongoClient(connectionString);
+    var database = client.GetDatabase("GymHiveMembershipsV2");
+    var collection = database.GetCollection<BsonDocument>("memberships");
+
+    // Add AutoRenew field to all documents that don't have it
+    var filter = Builders<BsonDocument>.Filter.Exists("AutoRenew", false);
+    var update = Builders<BsonDocument>.Update.Set("AutoRenew", false);
+    
+    var result = await collection.UpdateManyAsync(filter, update);
+    
+    Console.WriteLine($"Migration completed!");
+    Console.WriteLine($"Matched: {result.MatchedCount} documents");
+    Console.WriteLine($"Modified: {result.ModifiedCount} documents");
+}

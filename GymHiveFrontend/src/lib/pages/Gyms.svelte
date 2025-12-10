@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { push } from 'svelte-spa-router';
   import { requireAuth, isLoading, isAuthenticated, user } from '../auth/auth';
   import { gymsApi, type Gym } from '../services/gyms';
+  import SearchBar from '../components/gyms/SearchBar.svelte';
+  import GymListCard from '../components/gyms/GymListCard.svelte';
 
   let gyms: Gym[] = [];
   let loading = false;
@@ -20,6 +23,10 @@
     } finally {
       loading = false;
     }
+  }
+
+  function viewGymDetails(gymId: number) {
+    push(`/gyms/${gymId}`);
   }
 
   $: filteredGyms = gyms.filter(gym =>
@@ -64,34 +71,12 @@
 
     <!-- Search and Filters -->
     <div class="max-w-7xl mx-auto px-6 -mt-10">
-      <div class="card-panel p-6">
-        <div class="flex flex-col md:flex-row gap-5">
-          <div class="flex-1">
-            <input
-              type="text"
-              bind:value={searchQuery}
-              placeholder="Search gyms by name or address..."
-              class="no-border-input w-full"
-            />
-          </div>
-          <select
-            bind:value={selectedFilter}
-            class="no-border-input w-full md:w-auto"
-          >
-            <option value="all">All Gyms</option>
-            <option value="nearby">Nearby</option>
-            <option value="popular">Most Popular</option>
-            <option value="rating">Highest Rated</option>
-          </select>
-          <button 
-            on:click={loadGyms} 
-            disabled={loading}
-            class="btn-primary md:w-auto w-full py-3 rounded-xl shadow-lg disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
-        </div>
-      </div>
+      <SearchBar 
+        bind:searchQuery
+        bind:selectedFilter
+        {loading}
+        on:refresh={loadGyms}
+      />
     </div>
 
     <!-- Gym List -->
@@ -111,46 +96,16 @@
       {:else}
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
           {#each filteredGyms as gym (gym.id)}
-            <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden">
-              <div class="h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-6xl">
-                🏋️
-              </div>
-              <div class="p-6">
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">{gym.name}</h3>
-                <p class="text-gray-600 mb-4 flex items-center gap-2">
-                  <span class="text-lg">📍</span>
-                  {gym.address}
-                </p>
-                
-                {#if gym.description}
-                  <p class="text-gray-600 text-sm mb-4 line-clamp-2">{gym.description}</p>
-                {/if}
-
-                <div class="flex flex-wrap gap-2 mb-4">
-                  {#if gym.phoneNumber}
-                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">📞 {gym.phoneNumber}</span>
-                  {/if}
-                  {#if gym.email}
-                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">✉️ {gym.email}</span>
-                  {/if}
-                </div>
-
-                {#if gym.openingTime && gym.closingTime}
-                  <p class="text-gray-600 text-sm mb-4">
-                    ⏰ {gym.openingTime} - {gym.closingTime}
-                  </p>
-                {/if}
-
-                <div class="flex gap-3">
-                  <button class="btn-primary flex-1 py-2 rounded-xl text-sm">
-                    View Details
-                  </button>
-                  <button class="btn-outline flex-1 py-2 rounded-xl text-sm">
-                    Join
-                  </button>
-                </div>
-              </div>
-            </div>
+            <GymListCard {gym}>
+              <svelte:fragment slot="actions">
+                <button 
+                  on:click={() => viewGymDetails(gym.id)}
+                  class="btn-primary w-full py-2 rounded-xl text-sm"
+                >
+                  View Details
+                </button>
+              </svelte:fragment>
+            </GymListCard>
           {/each}
         </div>
       {/if}

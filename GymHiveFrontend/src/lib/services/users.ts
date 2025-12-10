@@ -29,7 +29,7 @@ export interface ChangeUserRoleDTO {
 export const usersApi = {
   // Get all users (Admin only)
   async getAll(): Promise<UserProfile[]> {
-    return getJson<UserProfile[]>('/api/auth/users');
+    return getJson<UserProfile[]>('/api/auth/GetAllUsers');
   },
 
   // Get user by ID (Admin only)
@@ -43,8 +43,8 @@ export const usersApi = {
   },
 
   // Change user role (Admin only)
-  async changeRole(userId: string, newRole: 'User' | 'Moderator' | 'Admin'): Promise<UserProfile> {
-    return putJson<UserProfile>(`/api/auth/users/${userId}/role`, { newRole });
+  async changeRole(userId: string, newRole: 'User' | 'Moderator' | 'Admin'): Promise<void> {
+    return postJson<void>(`/api/Authentication/update-role/${userId}`, { role: newRole });
   },
 
   // Toggle user active status (Admin only)

@@ -614,6 +614,164 @@ See [load-tests/README.md](./load-tests/README.md) for detailed test results and
 - Update README if adding new features
 - Keep commits atomic and focused
 
+## 🔄 Distributed Transaction Pattern: Choreographed SAGA
+
+GymHive implements the **Choreographed SAGA pattern** to manage distributed transactions across microservices. Unlike orchestrated SAGA (with a central coordinator), choreographed SAGA uses event-driven architecture where services react to events independently.
+
+### What is Choreographed SAGA?
+
+Each service:
+1. Listens to events from other services
+2. Performs its local transaction
+3. Publishes new events for other services
+4. Handles compensation if needed
+
+**Benefits:**
+- ✅ Truly decoupled microservices
+- ✅ No single point of failure
+- ✅ Scales naturally with event-driven architecture
+- ✅ Resilient to service failures
+
+### Implemented SAGA Flows
+
+#### 1. **User Deletion SAGA**
+When a user is deleted, all related data across services is automatically cleaned up:
+
+```
+UserDeletedEvent published
+    ↓
+├─→ MembershipService: Delete all user memberships
+├─→ NotificationsService: Delete all user notifications
+├─→ WorkoutLoggingService: Delete all user workout logs
+└─→ GymService: Remove user from all gym groups
+```
+
+**Events:**
+- `UserDeletedEvent` → Triggers cascade deletion
+- `UserMembershipsDeletedEvent` → Confirms membership cleanup
+- `UserNotificationsDeletedEvent` → Confirms notification cleanup
+- `UserWorkoutLogsDeletedEvent` → Confirms workout log cleanup
+
+#### 2. **Membership Purchase SAGA**
+When a user purchases a membership, they're automatically added to the gym's group:
+
+```
+MembershipPurchasedEvent published
+    ↓
+├─→ NotificationsService: Send welcome notification
+└─→ GymService: Add user to gym group automatically
+        ↓
+    GymGroupMemberAddedEvent published
+        ↓
+    NotificationsService: Send group welcome notification
+```
+
+**Events:**
+- `MembershipPurchasedEvent` → Triggers membership flow
+- `GymGroupMemberAddedEvent` → User added to gym group
+- Notifications sent at each step
+
+#### 3. **Gym Deletion SAGA**
+When a gym is deleted, all related entities are cleaned up and moderators are demoted:
+
+```
+GymDeletedEvent published
+    ↓
+├─→ MembershipService: Delete all memberships for this gym
+│       ↓
+│   Publish MembershipCancelledEvent for each member
+│       ↓
+│   NotificationsService: Notify each member
+│
+└─→ GymService: 
+    ├─ Delete gym groups
+    ├─ Demote moderators to regular users
+    └─ Clean up gym data
+```
+
+**Events:**
+- `GymDeletedEvent` → Triggers gym cleanup
+- `MembershipCancelledEvent` → For each cancelled membership
+- `GymGroupDeletedEvent` → Group cleanup
+- `ModeratorDemotedEvent` → User role changes
+
+### Compensation & Rollback
+
+Each service implements compensation logic:
+- **Idempotency**: All event handlers are idempotent (can be called multiple times safely)
+- **Event Sourcing**: Events are stored for audit trail
+- **Retry Logic**: Failed operations are retried with exponential backoff
+- **Dead Letter Queue**: Failed events go to DLQ for manual review
+
+### Event Infrastructure
+
+**Technology:** RabbitMQ with fanout exchanges
+- **Exchange:** `gymhive.events` (fanout type)
+- **Queues:** One queue per service per event type
+- **Durability:** All queues and messages are durable
+- **Acknowledgment:** Manual ack after successful processing
+
+**Message Structure:**
+```json
+{
+  "eventType": "UserDeleted",
+  "eventId": "uuid",
+  "timestamp": "2025-12-07T15:30:00Z",
+  "userId": "uuid",
+  "email": "user@example.com"
+}
+```
+
+### Adding New SAGA Flows
+
+To add a new SAGA flow:
+
+1. **Define events** in `GymHive.Messaging/Events/`
+2. **Publish events** from the initiating service
+3. **Subscribe to events** in each participating service
+4. **Implement idempotent handlers** with proper error handling
+5. **Add compensation logic** for rollback scenarios
+6. **Test failure scenarios** to ensure proper compensation
+
+Example:
+```csharp
+// 1. Define event
+public class WorkoutCompletedEvent : BaseEvent
+{
+    public Guid UserId { get; set; }
+    public int GymId { get; set; }
+    // ... other properties
+}
+
+// 2. Publish event
+await _eventPublisher.PublishAsync(new WorkoutCompletedEvent { ... });
+
+// 3. Subscribe in other service
+_eventSubscriber.Subscribe<WorkoutCompletedEvent>(HandleWorkoutCompletedAsync);
+
+// 4. Implement handler
+private async Task HandleWorkoutCompletedAsync(WorkoutCompletedEvent @event)
+{
+    // Idempotent processing
+    // Publish new events if needed
+}
+```
+
+### Monitoring SAGA Execution
+
+- **Logging**: Each service logs event processing
+- **Correlation IDs**: Track events across services
+- **Metrics**: Event processing times, success/failure rates
+- **Alerting**: Failed compensations trigger alerts
+
+### Benefits in GymHive
+
+1. **Data Consistency**: User deletion properly cleans up all related data
+2. **Business Logic**: Membership purchase automatically adds users to groups
+3. **Cascade Operations**: Gym deletion handles all dependencies
+4. **Audit Trail**: All events are logged and traceable
+5. **Resilience**: Services can fail and recover independently
+
 ## 📄 License
 
 MIT License - See [LICENSE](./LICENSE) file for details.

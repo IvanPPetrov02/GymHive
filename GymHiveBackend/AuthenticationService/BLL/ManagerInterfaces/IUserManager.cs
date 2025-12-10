@@ -17,4 +17,6 @@ public interface IUserManager
     Task<User?> GetUserByEmailAsync(string email);
     Task ChangePasswordAsync(string uuid, string newPassword, string oldPassword);
     Task<User?> GetLoggedUserAsync(string jwt);
+    Task UpdateUserRoleAsync(string uuid, Role role);
+    Task UpdateUserGymIdAsync(string uuid, int? gymId);
 }

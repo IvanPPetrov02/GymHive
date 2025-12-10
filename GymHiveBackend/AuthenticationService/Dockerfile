@@ -2,18 +2,23 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+# Copy shared library first
+COPY ["GymHive.Messaging/GymHive.Messaging.csproj", "GymHive.Messaging/"]
+
 # Copy project files
-COPY ["AuthenticationService.csproj", "./"]
-COPY ["BLL/BLL.csproj", "BLL/"]
-COPY ["DAL/DAL.csproj", "DAL/"]
+COPY ["AuthenticationService/AuthenticationService.csproj", "AuthenticationService/"]
+COPY ["AuthenticationService/BLL/BLL.csproj", "AuthenticationService/BLL/"]
+COPY ["AuthenticationService/DAL/DAL.csproj", "AuthenticationService/DAL/"]
 
 # Restore dependencies
-RUN dotnet restore "AuthenticationService.csproj"
+RUN dotnet restore "AuthenticationService/AuthenticationService.csproj"
 
 # Copy source code
-COPY . .
+COPY ["GymHive.Messaging/", "GymHive.Messaging/"]
+COPY ["AuthenticationService/", "AuthenticationService/"]
 
 # Build the application
+WORKDIR /src/AuthenticationService
 RUN dotnet build "AuthenticationService.csproj" -c Release -o /app/build
 
 # Publish stage
@@ -23,6 +28,9 @@ RUN dotnet publish "AuthenticationService.csproj" -c Release -o /app/publish /p:
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy published app
 COPY --from=publish /app/publish .

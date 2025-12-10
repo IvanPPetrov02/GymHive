@@ -2,7 +2,7 @@ namespace MembershipService.BLL.DTOs;
 
 public class MembershipDTO
 {
-    public int Id { get; set; }
+    public string? Id { get; set; }
     public Guid UserId { get; set; }
     public int GymId { get; set; }
     public string GymName { get; set; } = string.Empty;
@@ -10,6 +10,7 @@ public class MembershipDTO
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public bool IsActive { get; set; }
+    public bool AutoRenew { get; set; }
     public decimal Price { get; set; }
 }
 
@@ -21,6 +22,7 @@ public class CreateMembershipDTO
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public decimal Price { get; set; }
+    public bool AutoRenew { get; set; } = false;
 }
 
 public class UpdateMembershipDTO
@@ -28,6 +30,7 @@ public class UpdateMembershipDTO
     public string? MembershipType { get; set; }
     public DateTime? EndDate { get; set; }
     public bool? IsActive { get; set; }
+    public bool? AutoRenew { get; set; }
 }
 
 public class GymDTO

@@ -1,16 +1,36 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { user, isAuthenticated } from '../auth';
   import { requireAuth } from '../auth';
   import { gymsApi, type Gym } from '../services/gyms';
   import { membershipsApi, type Membership } from '../services/memberships';
+  import { gymGroupsApi, type GymGroup } from '../services/gymGroups';
+  import { showToast } from '../components/ui/Toast.svelte';
   import LoadingSpinner from '../components/ui/LoadingSpinner.svelte';
+  import QRCodeButton from '../components/feed/QRCodeButton.svelte';
+  import QRCodeModal from '../components/feed/QRCodeModal.svelte';
+  import StatCard from '../components/feed/StatCard.svelte';
+  import MembershipCard from '../components/feed/MembershipCard.svelte';
+  import GymCard from '../components/feed/GymCard.svelte';
   import { push } from 'svelte-spa-router';
+  import QRCode from 'qrcode';
 
   let gyms: Gym[] = [];
   let myMemberships: Membership[] = [];
+  let gymGroups: GymGroup[] = [];
+  let userGroupIds: Set<number> = new Set(); // Track which groups user has joined
   let loading = true;
   let error: string | null = null;
+  let joiningGroupId: number | null = null;
+  let showQRModal = false;
+  let qrCodeDataUrl = '';
+  let qrInterval: number | null = null;
+  let countdown = 30;
+  let countdownInterval: number | null = null;
+  
+  const membershipIcon = '<svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+  const gymsIcon = '<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>';
+  const profileIcon = '<svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>';
 
   onMount(() => {
     requireAuth('#/feed');
@@ -19,23 +39,156 @@
     }
   });
 
+  onDestroy(() => {
+    if (qrInterval) {
+      clearInterval(qrInterval);
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+    }
+  });
+
+  async function generateQRCode() {
+    try {
+      const userId = $user?.uuid;
+      const now = new Date();
+      const timestamp = now.getTime();
+      const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const time = now.toTimeString().split(' ')[0]; // HH:MM:SS
+      
+      const qrData = JSON.stringify({ 
+        userId, 
+        timestamp,
+        date,
+        time
+      });
+      
+      console.log('[QR Code] Generated data:', qrData);
+      qrCodeDataUrl = await QRCode.toDataURL(qrData, { width: 300, margin: 2 });
+    } catch (err) {
+      console.error('Failed to generate QR code:', err);
+    }
+  }
+
+  function startCountdown() {
+    countdown = 30;
+    countdownInterval = setInterval(() => {
+      countdown--;
+      if (countdown <= 0) {
+        generateQRCode();
+        countdown = 30;
+      }
+    }, 1000);
+  }
+
+  function openQRModal() {
+    showQRModal = true;
+    generateQRCode();
+    startCountdown();
+    // Regenerate QR code every 30 seconds
+    qrInterval = setInterval(() => {
+      generateQRCode();
+      countdown = 30;
+    }, 30000);
+  }
+
+  function closeQRModal() {
+    showQRModal = false;
+    if (qrInterval) {
+      clearInterval(qrInterval);
+      qrInterval = null;
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+  }
+
   async function loadFeedData() {
     loading = true;
     error = null;
     try {
-      // Load gyms and user's memberships in parallel
-      const [gymsData, membershipsData] = await Promise.all([
+      // Load gyms, user's memberships, and gym groups in parallel
+      const [gymsData, membershipsData, groupsData] = await Promise.all([
         gymsApi.getAll().catch(() => []),
-        membershipsApi.getMyMemberships().catch(() => [])
+        membershipsApi.getMyMemberships().catch(() => []),
+        gymGroupsApi.getAll().catch(() => [])
       ]);
       gyms = gymsData.slice(0, 6); // Show first 6 gyms
       myMemberships = membershipsData;
+      gymGroups = groupsData;
+      
+      // Load which groups the user is in
+      await loadUserGroups();
     } catch (e: any) {
       console.error('Failed to load feed data:', e);
       error = e.message || 'Failed to load feed';
     } finally {
       loading = false;
     }
+  }
+
+  async function loadUserGroups() {
+    if (!$user?.uuid) return;
+    
+    // Check each group to see if user is a member
+    const membershipChecks = await Promise.all(
+      gymGroups.map(async (group) => {
+        try {
+          const members = await gymGroupsApi.getMembers(group.id);
+          return members.some(m => m.userId === $user?.uuid) ? group.id : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    
+    userGroupIds = new Set(membershipChecks.filter(id => id !== null) as number[]);
+  }
+
+  async function handleJoinGroup(groupId: number) {
+    if (!$user?.uuid) {
+      showToast('error', 'User not authenticated');
+      return;
+    }
+    joiningGroupId = groupId;
+    try {
+      await gymGroupsApi.joinGroup(groupId, $user.uuid);
+      userGroupIds.add(groupId);
+      userGroupIds = userGroupIds; // Trigger reactivity
+      showToast('success', 'Successfully joined the group!');
+    } catch (e: any) {
+      showToast('error', e.message || 'Failed to join group');
+    } finally {
+      joiningGroupId = null;
+    }
+  }
+
+  async function handleLeaveGroup(groupId: number) {
+    if (!$user?.uuid) {
+      showToast('error', 'User not authenticated');
+      return;
+    }
+    joiningGroupId = groupId;
+    try {
+      await gymGroupsApi.leaveGroup(groupId, $user.uuid);
+      userGroupIds.delete(groupId);
+      userGroupIds = userGroupIds; // Trigger reactivity
+      showToast('success', 'Successfully left the group');
+    } catch (e: any) {
+      showToast('error', e.message || 'Failed to leave group');
+    } finally {
+      joiningGroupId = null;
+    }
+  }
+
+  function canJoinGroup(group: GymGroup): boolean {
+    // Check if user has active membership at this gym
+    return myMemberships.some(m => m.gymId === group.gymId && m.isActive);
+  }
+
+  function isUserInGroup(groupId: number): boolean {
+    return userGroupIds.has(groupId);
   }
 
   function viewGym(id: number) {
@@ -53,6 +206,13 @@
       <p class="text-lg text-gray-600">Here's what's happening in your fitness journey</p>
     </div>
 
+    <!-- Gym Check-in QR Code Button - Only show if user has memberships -->
+    {#if myMemberships.length > 0}
+      <div class="mb-8">
+        <QRCodeButton on:click={openQRModal} />
+      </div>
+    {/if}
+
     {#if loading}
       <div class="flex justify-center items-center py-20">
         <LoadingSpinner size="lg" />
@@ -67,47 +227,9 @@
     {:else}
       <!-- Quick Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Active Memberships</p>
-              <p class="text-3xl font-bold text-gray-900 mt-1">{myMemberships.length}</p>
-            </div>
-            <div class="bg-blue-100 rounded-full p-3">
-              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Available Gyms</p>
-              <p class="text-3xl font-bold text-gray-900 mt-1">{gyms.length}+</p>
-            </div>
-            <div class="bg-green-100 rounded-full p-3">
-              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Your Profile</p>
-              <p class="text-xl font-bold text-gray-900 mt-1">{$user?.role || 'Member'}</p>
-            </div>
-            <div class="bg-purple-100 rounded-full p-3">
-              <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
+        <StatCard title="Active Memberships" value={myMemberships.length} color="blue" icon={membershipIcon} />
+        <StatCard title="Available Gyms" value="{gyms.length}+" color="green" icon={gymsIcon} />
+        <StatCard title="Your Profile" value={$user?.role || 'Member'} color="purple" icon={profileIcon} />
       </div>
 
       <!-- My Active Memberships -->
@@ -119,21 +241,63 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each myMemberships.slice(0, 3) as membership}
-              <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-                  <h3 class="text-white font-bold text-lg">{membership.gym?.name || 'Gym Membership'}</h3>
-                  <p class="text-blue-100 text-sm">{membership.type}</p>
+              <MembershipCard {membership} />
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Gym Groups -->
+      {#if gymGroups.length > 0}
+        <div class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-900">Join Gym Groups</h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {#each gymGroups.slice(0, 6) as group}
+              <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6">
+                <div class="mb-4">
+                  <h3 class="text-xl font-bold text-gray-900 mb-1">{group.name}</h3>
+                  <p class="text-sm text-blue-600 mb-2">{group.gymName}</p>
+                  {#if group.description}
+                    <p class="text-sm text-gray-600 mb-2">{group.description}</p>
+                  {/if}
+                  {#if group.schedule}
+                    <p class="text-xs text-gray-500">📅 {group.schedule}</p>
+                  {/if}
                 </div>
-                <div class="p-4">
-                  <div class="flex justify-between items-center mb-2">
-                    <span class="text-gray-600 text-sm">Valid Until:</span>
-                    <span class="font-semibold text-gray-900">{new Date(membership.endDate).toLocaleDateString()}</span>
-                  </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-gray-600 text-sm">Status:</span>
-                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
-                  </div>
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-sm text-gray-600">Max {group.maxMembers} members</span>
                 </div>
+                {#if isUserInGroup(group.id)}
+                  <button
+                    on:click={() => handleLeaveGroup(group.id)}
+                    disabled={joiningGroupId === group.id}
+                    class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition disabled:opacity-50"
+                  >
+                    {#if joiningGroupId === group.id}
+                      <LoadingSpinner size="small" color="white" />
+                    {:else}
+                      Leave Group
+                    {/if}
+                  </button>
+                {:else if canJoinGroup(group)}
+                  <button
+                    on:click={() => handleJoinGroup(group.id)}
+                    disabled={joiningGroupId === group.id}
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition disabled:opacity-50"
+                  >
+                    {#if joiningGroupId === group.id}
+                      <LoadingSpinner size="small" color="white" />
+                    {:else}
+                      Join Group
+                    {/if}
+                  </button>
+                {:else}
+                  <div class="text-sm text-gray-500 text-center py-2 bg-gray-100 rounded-lg">
+                    Membership required at {group.gymName}
+                  </div>
+                {/if}
               </div>
             {/each}
           </div>
@@ -149,35 +313,7 @@
         {#if gyms.length > 0}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each gyms as gym}
-              <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition transform hover:-translate-y-1 cursor-pointer" on:click={() => viewGym(gym.id)}>
-                <div class="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                  <svg class="w-20 h-20 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                  </svg>
-                </div>
-                <div class="p-5">
-                  <h3 class="text-xl font-bold text-gray-900 mb-2">{gym.name}</h3>
-                  <p class="text-gray-600 text-sm mb-3 line-clamp-2">{gym.description || 'No description available'}</p>
-                  <div class="flex items-center text-gray-500 text-sm mb-2">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                    <span>{gym.address}</span>
-                  </div>
-                  {#if gym.openingTime && gym.closingTime}
-                    <div class="flex items-center text-gray-500 text-sm">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                      <span>{gym.openingTime} - {gym.closingTime}</span>
-                    </div>
-                  {/if}
-                  <button on:click|stopPropagation={() => viewGym(gym.id)} class="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
-                    View Details
-                  </button>
-                </div>
-              </div>
+              <GymCard {gym} on:view={(e) => viewGym(e.detail)} />
             {/each}
           </div>
         {:else}
@@ -227,3 +363,11 @@
     {/if}
   </div>
 </div>
+
+<!-- QR Code Modal -->
+<QRCodeModal 
+  isOpen={showQRModal} 
+  {qrCodeDataUrl} 
+  {countdown} 
+  on:close={closeQRModal} 
+/>

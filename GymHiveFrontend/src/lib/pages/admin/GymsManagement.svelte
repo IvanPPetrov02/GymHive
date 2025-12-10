@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { user, isAuthenticated, isLoading } from '../../auth';
+  import { user, isAuthenticated, isLoading, getAccessToken } from '../../auth';
   import { requireAuth } from '../../auth/auth';
   import { gymsApi, type Gym, type CreateGymDTO, type UpdateGymDTO } from '../../services/gyms';
   import { showToast } from '../../components/ui/Toast.svelte';
@@ -8,6 +8,11 @@
   import Modal from '../../components/ui/Modal.svelte';
   import ConfirmDialog from '../../components/ui/ConfirmDialog.svelte';
   import { push } from 'svelte-spa-router';
+
+  interface ModeratorDTO {
+    firstName: string;
+    lastName: string;
+  }
 
   let gyms: Gym[] = [];
   let filteredGyms: Gym[] = [];
@@ -17,7 +22,7 @@
   // Create/Edit Modal
   let showModal = false;
   let editingGym: Gym | null = null;
-  let gymForm: CreateGymDTO = {
+  let gymForm: any = {
     name: '',
     address: '',
     description: '',
@@ -25,9 +30,15 @@
     email: '',
     website: '',
     openingTime: '06:00',
-    closingTime: '22:00'
+    closingTime: '22:00',
+    moderators: []
   };
   let isSubmitting = false;
+
+  // Moderators
+  let moderators: ModeratorDTO[] = [];
+  let newModFirstName = '';
+  let newModLastName = '';
 
   // Delete Confirmation
   let deleteGymId: number | null = null;
@@ -62,36 +73,68 @@
   }
 
   function openCreateModal() {
+    console.log('🟡 Opening create modal');
+    alert('CREATE MODAL OPENING');
     editingGym = null;
+    moderators = [];
+    newModFirstName = '';
+    newModLastName = '';
     gymForm = {
       name: '',
       address: '',
       description: '',
-      phoneNumber: '',
-      email: '',
-      website: '',
-      openingTime: '06:00',
-      closingTime: '22:00'
+      city: '',
+      country: '',
+      phone: '',
+      email: ''
     };
     showModal = true;
+    console.log('🟡 Modal opened, moderators array:', moderators);
   }
 
   function openEditModal(gym: Gym) {
     editingGym = gym;
+    moderators = [];
+    newModFirstName = '';
+    newModLastName = '';
     gymForm = {
       name: gym.name,
       address: gym.address,
       description: gym.description || '',
-      phoneNumber: gym.phoneNumber || '',
-      email: gym.email || '',
-      website: gym.website || '',
-      openingTime: gym.openingTime || '06:00',
-      closingTime: gym.closingTime || '22:00'
+      city: gym.city || '',
+      country: gym.country || '',
+      phone: gym.phone || '',
+      email: gym.email || ''
     };
     showModal = true;
   }
 
+  function addModerator() {
+    alert('ADD MODERATOR CLICKED');
+    console.log('🔵 ADD MODERATOR FUNCTION CALLED');
+    if (!newModFirstName.trim() || !newModLastName.trim()) {
+      showToast('error', 'First name and last name are required');
+      return;
+    }
+    console.log('🔵 Adding moderator:', newModFirstName, newModLastName);
+    moderators = [...moderators, { firstName: newModFirstName, lastName: newModLastName }];
+    console.log('🔵 Current moderators list:', moderators);
+    alert(`Moderator added! Total: ${moderators.length}`);
+    newModFirstName = '';
+    newModLastName = '';
+  }
+
+  function removeModerator(index: number) {
+    moderators = moderators.filter((_, i) => i !== index);
+  }
+
   async function handleSubmit() {
+    alert('SUBMIT CLICKED');
+    console.log('🟢 === SUBMIT STARTED ===');
+    console.log('🟢 Gym form:', gymForm);
+    console.log('🟢 Moderators to create:', moderators);
+    console.log('🟢 Moderators count:', moderators.length);
+    
     if (!gymForm.name.trim() || !gymForm.address.trim()) {
       showToast('error', 'Name and address are required');
       return;
@@ -99,13 +142,74 @@
 
     isSubmitting = true;
     try {
+      // Save gym without moderators
+      const gymData = { ...gymForm };
+      console.log('🟢 Saving gym:', gymData);
+      
+      let savedGymId: number;
       if (editingGym) {
-        await gymsApi.update(editingGym.id, gymForm);
+        await gymsApi.update(editingGym.id, gymData);
+        savedGymId = editingGym.id;
         showToast('success', 'Gym updated successfully');
       } else {
-        await gymsApi.create(gymForm);
+        const createdGym = await gymsApi.create(gymData);
+        savedGymId = createdGym.id;
         showToast('success', 'Gym created successfully');
       }
+      console.log('🟢 Gym saved successfully with ID:', savedGymId);
+
+      // Create moderators separately using the direct endpoint
+      if (moderators.length > 0) {
+        console.log('Creating moderators:', moderators);
+        let createdCount = 0;
+        
+        // Get the JWT token properly
+        const token = await getAccessToken();
+        console.log('🔑 Token retrieved:', token ? 'YES' : 'NO');
+        
+        if (!token) {
+          showToast('error', 'Authentication token not found. Please log in again.');
+          return;
+        }
+        
+        for (const mod of moderators) {
+          try {
+            console.log(`Creating moderator: ${mod.firstName} ${mod.lastName} for gym: ${gymForm.name}`);
+            
+            const response = await fetch('http://localhost:5000/api/auth/create-moderator', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                firstName: mod.firstName,
+                lastName: mod.lastName,
+                gymName: gymForm.name,
+                gymId: savedGymId
+              })
+            });
+
+            const result = await response.json();
+            console.log('Response:', response.status, result);
+
+            if (!response.ok) {
+              throw new Error(result.message || `Failed to create moderator ${mod.firstName} ${mod.lastName}`);
+            }
+
+            console.log('Moderator created successfully:', result);
+            createdCount++;
+          } catch (err: any) {
+            console.error('Error creating moderator:', err);
+            showToast('error', `Failed to create moderator ${mod.firstName} ${mod.lastName}: ${err.message}`);
+          }
+        }
+        
+        if (createdCount > 0) {
+          showToast('success', `${createdCount} moderator(s) created successfully`);
+        }
+      }
+
       showModal = false;
       await loadGyms();
     } catch (e: any) {
@@ -252,10 +356,28 @@
           />
         </div>
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+          <input
+            type="text"
+            bind:value={gymForm.city}
+            disabled={isSubmitting}
+            class="no-border-input w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+          <input
+            type="text"
+            bind:value={gymForm.country}
+            disabled={isSubmitting}
+            class="no-border-input w-full"
+          />
+        </div>
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
           <input
             type="tel"
-            bind:value={gymForm.phoneNumber}
+            bind:value={gymForm.phone}
             disabled={isSubmitting}
             class="no-border-input w-full"
           />
@@ -269,35 +391,6 @@
             class="no-border-input w-full"
           />
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
-          <input
-            type="url"
-            bind:value={gymForm.website}
-            disabled={isSubmitting}
-            class="no-border-input w-full"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Opening</label>
-            <input
-              type="time"
-              bind:value={gymForm.openingTime}
-              disabled={isSubmitting}
-              class="no-border-input w-full"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Closing</label>
-            <input
-              type="time"
-              bind:value={gymForm.closingTime}
-              disabled={isSubmitting}
-              class="no-border-input w-full"
-            />
-          </div>
-        </div>
       </div>
       <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -307,6 +400,69 @@
           rows="4"
           class="no-border-input w-full"
         ></textarea>
+      </div>
+
+      <!-- Moderators Section -->
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gym Moderators</label>
+        <div class="bg-gray-50 p-4 rounded-lg space-y-3">
+          <!-- Add Moderator Form -->
+          <div class="flex gap-2">
+            <input
+              type="text"
+              bind:value={newModFirstName}
+              placeholder="First Name"
+              disabled={isSubmitting}
+              class="no-border-input flex-1"
+            />
+            <input
+              type="text"
+              bind:value={newModLastName}
+              placeholder="Last Name"
+              disabled={isSubmitting}
+              class="no-border-input flex-1"
+            />
+            <button
+              type="button"
+              on:click={addModerator}
+              disabled={isSubmitting}
+              class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg whitespace-nowrap"
+            >
+              + Add
+            </button>
+          </div>
+
+          <!-- Moderator List -->
+          {#if moderators.length > 0}
+            <div class="space-y-2">
+              <p class="text-xs text-gray-600">Moderators to be created:</p>
+              {#each moderators as mod, index}
+                <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200">
+                  <div>
+                    <span class="font-medium">{mod.firstName} {mod.lastName}</span>
+                    <span class="text-xs text-gray-500 ml-2">
+                      (Email: {mod.firstName.toLowerCase()}.{mod.lastName.toLowerCase()}@{gymForm.name ? gymForm.name.toLowerCase().replace(/\s/g, '') : 'gymname'}.com)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    on:click={() => removeModerator(index)}
+                    disabled={isSubmitting}
+                    class="text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="text-sm text-gray-500 italic">No moderators added yet</p>
+          {/if}
+          
+          <p class="text-xs text-gray-500 mt-2">
+            ℹ️ Moderators will be created with email format: firstname.lastname@gymname.com (default password: Moderator123!)
+          </p>
+        </div>
       </div>
     </form>
 

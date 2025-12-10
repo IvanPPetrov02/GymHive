@@ -18,4 +18,6 @@ public class UserDTO
     public DateTime CreatedAt { get; set; }
     
     public string Role { get; set; } = "User";
+    
+    public int? GymId { get; set; }
 }

@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { location, push } from 'svelte-spa-router';
-  import { isAuthenticated, user } from '../auth';
+  import { isAuthenticated, user, getAccessToken } from '../auth';
   import { logout } from '../auth';
+  import { getApiBase } from '../api';
 
   let mobileMenuOpen = false;
+  let unreadCount = 0;
 
   function toggleMobileMenu() {
     mobileMenuOpen = !mobileMenuOpen;
@@ -15,6 +18,42 @@
 
   function handleLogin() {
     push('/login');
+  }
+
+  async function fetchUnreadCount() {
+    if (!$isAuthenticated) return;
+    
+    try {
+      const token = await getAccessToken();
+      const apiBase = getApiBase();
+      
+      const response = await fetch(`${apiBase}/api/notifications/unread-count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        unreadCount = await response.json();
+      }
+    } catch (err) {
+      console.error('Error fetching unread count:', err);
+    }
+  }
+
+  // Fetch unread count on mount and every 30 seconds
+  onMount(() => {
+    if ($isAuthenticated) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  });
+
+  // Refetch when authentication status changes
+  $: if ($isAuthenticated) {
+    fetchUnreadCount();
   }
 </script>
 
@@ -33,6 +72,16 @@
           {/if}
           <a href="#/gyms" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/gyms') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Find Gyms</a>
           {#if $isAuthenticated}
+            <a href="#/memberships" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/memberships') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">My Memberships</a>
+            <a href="#/workouts" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/workouts') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">My Workouts</a>
+            <a href="#/notifications" class="px-4 py-2 rounded-lg text-sm font-medium transition relative {isActive('/notifications') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">
+              Notifications
+              {#if unreadCount > 0}
+                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              {/if}
+            </a>
             <a href="#/profile" class="px-4 py-2 rounded-lg text-sm font-medium transition {isActive('/profile') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Profile</a>
             {#if $user?.role === 'Admin'}
               <a href="#/admin/gyms" class="px-4 py-2 rounded-lg text-sm font-medium transition {$location?.startsWith('/admin') ? 'bg-purple-600 text-white shadow-sm' : 'text-purple-600 hover:text-purple-900 hover:bg-purple-50'}">
@@ -91,6 +140,16 @@
       {/if}
       <a href="#/gyms" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/gyms') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Find Gyms</a>
       {#if $isAuthenticated}
+        <a href="#/memberships" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/memberships') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">My Memberships</a>
+        <a href="#/workouts" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/workouts') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">My Workouts</a>
+        <a href="#/notifications" class="block px-4 py-3 rounded-lg text-sm font-medium transition relative {isActive('/notifications') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">
+          Notifications
+          {#if unreadCount > 0}
+            <span class="absolute top-2 right-4 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          {/if}
+        </a>
         <a href="#/profile" class="block px-4 py-3 rounded-lg text-sm font-medium transition {isActive('/profile') ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}">Profile</a>
         {#if $user?.role === 'Admin'}
           <div class="bg-purple-50 rounded-lg p-2 space-y-1">

@@ -19,7 +19,7 @@ public class MembershipRepository : IMembershipRepository
         return await _context.Memberships.ToListAsync();
     }
 
-    public async Task<Membership?> GetByIdAsync(int id)
+    public async Task<Membership?> GetByIdAsync(string id)
     {
         return await _context.Memberships.FirstOrDefaultAsync(m => m.Id == id);
     }
@@ -38,8 +38,21 @@ public class MembershipRepository : IMembershipRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Membership>> GetExpiringMembershipsAsync(DateTime startDate, DateTime endDate)
+    {
+        return await _context.Memberships
+            .Where(m => m.EndDate >= startDate && m.EndDate < endDate && m.IsActive)
+            .ToListAsync();
+    }
+
     public async Task<Membership> CreateAsync(Membership membership)
     {
+        // Generate ObjectId if not provided
+        if (string.IsNullOrEmpty(membership.Id))
+        {
+            membership.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
+        }
+        
         _context.Memberships.Add(membership);
         await _context.SaveChangesAsync();
         return membership;
@@ -52,9 +65,9 @@ public class MembershipRepository : IMembershipRepository
         return membership;
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(string id)
     {
-        var membership = await _context.Memberships.FindAsync(id);
+        var membership = await _context.Memberships.FirstOrDefaultAsync(m => m.Id == id);
         if (membership == null) return false;
 
         _context.Memberships.Remove(membership);

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NotificationsService.BLL.ManagerInterfaces;
 using NotificationsService.Services;
@@ -7,7 +6,6 @@ namespace NotificationsService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationManager _notificationManager;
@@ -29,7 +27,7 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var userId = _userContext.GetUserId();
+            var userId = _userContext.GetCurrentUserId();
             var notifications = await _notificationManager.GetUserNotificationsAsync(userId, skip, take);
             return Ok(notifications);
         }
@@ -44,12 +42,32 @@ public class NotificationsController : ControllerBase
         }
     }
 
+    [HttpGet("unread")]
+    public async Task<IActionResult> GetUnreadNotifications([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    {
+        try
+        {
+            var userId = _userContext.GetCurrentUserId();
+            var notifications = await _notificationManager.GetUnreadNotificationsAsync(userId, skip, take);
+            return Ok(notifications);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving unread notifications");
+            return StatusCode(500, new { error = "An error occurred while retrieving unread notifications" });
+        }
+    }
+
     [HttpGet("unread-count")]
     public async Task<IActionResult> GetUnreadCount()
     {
         try
         {
-            var userId = _userContext.GetUserId();
+            var userId = _userContext.GetCurrentUserId();
             var count = await _notificationManager.GetUnreadCountAsync(userId);
             return Ok(count);
         }
@@ -69,7 +87,7 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var userId = _userContext.GetUserId();
+            var userId = _userContext.GetCurrentUserId();
             var result = await _notificationManager.MarkAsReadAsync(id, userId);
             
             if (!result)
@@ -89,11 +107,12 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPut("read-all")]
+    [HttpPut("mark-all-read")]
     public async Task<IActionResult> MarkAllAsRead()
     {
         try
         {
-            var userId = _userContext.GetUserId();
+            var userId = _userContext.GetCurrentUserId();
             var count = await _notificationManager.MarkAllAsReadAsync(userId);
             return Ok(new { markedAsRead = count });
         }
@@ -113,7 +132,7 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var userId = _userContext.GetUserId();
+            var userId = _userContext.GetCurrentUserId();
             var result = await _notificationManager.DeleteAsync(id, userId);
             
             if (!result)
@@ -132,3 +151,4 @@ public class NotificationsController : ControllerBase
         }
     }
 }
+

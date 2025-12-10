@@ -11,6 +11,7 @@ public class TokenValidationResponseDTO
     public Guid? UserId { get; set; }
     public string? Email { get; set; }
     public string? Role { get; set; }
+    public int? GymId { get; set; }
     public long? Exp { get; set; }
     public string? Error { get; set; }
 }

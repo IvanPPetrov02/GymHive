@@ -14,6 +14,11 @@
   import { get } from 'svelte/store';
   import { replace } from 'svelte-spa-router';
   
+  // Service Pages
+  import MyMemberships from './lib/pages/MyMemberships.svelte';
+  import Workouts from './lib/pages/Workouts.svelte';
+  import Notifications from './lib/pages/Notifications.svelte';
+  
   // Admin Pages
   import GymsManagement from './lib/pages/admin/GymsManagement.svelte';
   import UsersManagement from './lib/pages/admin/UsersManagement.svelte';
@@ -69,10 +74,28 @@
     }),
     '/login': LoginRegister,
     '/register': LoginRegister,
-    '/gyms': Gyms,
-    '/gyms/:id': GymDetails,
+    '/gyms': wrap({
+      component: Gyms,
+      conditions: [authGuard]
+    }),
+    '/gyms/:id': wrap({
+      component: GymDetails,
+      conditions: [authGuard]
+    }),
     '/profile': wrap({
       component: ProfileEnhanced,
+      conditions: [authGuard]
+    }),
+    '/memberships': wrap({
+      component: MyMemberships,
+      conditions: [authGuard]
+    }),
+    '/workouts': wrap({
+      component: Workouts,
+      conditions: [authGuard]
+    }),
+    '/notifications': wrap({
+      component: Notifications,
       conditions: [authGuard]
     }),
     '/admin/gyms': wrap({

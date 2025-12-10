@@ -69,6 +69,31 @@ public class GymsController : ControllerBase
         {
             _logger.LogError(ex, "Failed to publish GymCreatedEvent");
         }
+
+        // Create moderator users if specified
+        if (createGymDto.Moderators != null && createGymDto.Moderators.Any())
+        {
+            try
+            {
+                var moderatorInfoList = createGymDto.Moderators.Select(m => new ModeratorInfo
+                {
+                    FirstName = m.FirstName,
+                    LastName = m.LastName
+                }).ToList();
+
+                await _eventPublisher.PublishAsync(new CreateModeratorsCommand
+                {
+                    GymId = gym.Id,
+                    GymName = gym.Name,
+                    Moderators = moderatorInfoList
+                });
+                _logger.LogInformation($"Published CreateModeratorsCommand for gym {gym.Name} with {moderatorInfoList.Count} moderator(s)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish CreateModeratorsCommand");
+            }
+        }
         
         return CreatedAtAction(nameof(GetGymById), new { id = gym.Id }, gym);
     }
@@ -85,6 +110,32 @@ public class GymsController : ControllerBase
 
         var gym = await _gymManager.UpdateGymAsync(id, updateGymDto);
         if (gym == null) return NotFound();
+
+        // Create moderator users if specified
+        if (updateGymDto.Moderators != null && updateGymDto.Moderators.Any())
+        {
+            try
+            {
+                var moderatorInfoList = updateGymDto.Moderators.Select(m => new ModeratorInfo
+                {
+                    FirstName = m.FirstName,
+                    LastName = m.LastName
+                }).ToList();
+
+                await _eventPublisher.PublishAsync(new CreateModeratorsCommand
+                {
+                    GymId = id,
+                    GymName = gym.Name,
+                    Moderators = moderatorInfoList
+                });
+                _logger.LogInformation($"Published CreateModeratorsCommand for gym {gym.Name} with {moderatorInfoList.Count} moderator(s)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish CreateModeratorsCommand");
+            }
+        }
+
         return Ok(gym);
     }
 
@@ -98,8 +149,30 @@ public class GymsController : ControllerBase
             return StatusCode(403, new { error = "Forbidden: Admin role required" });
         }
 
+        // Get gym details before deletion
+        var gym = await _gymManager.GetGymByIdAsync(id);
+        if (gym == null) return NotFound();
+
         var result = await _gymManager.DeleteGymAsync(id);
         if (!result) return NotFound();
+
+        // Publish GymDeletedEvent to trigger SAGA (delete memberships, groups, demote moderators)
+        try
+        {
+            await _eventPublisher.PublishAsync(new GymDeletedEvent
+            {
+                GymId = id,
+                GymName = gym.Name,
+                DeletedBy = 0, // TODO: Get actual user ID
+                DeletedAt = DateTime.UtcNow
+            });
+            _logger.LogInformation("✅ Published GymDeletedEvent for gym {GymId} ({GymName})", id, gym.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish GymDeletedEvent for gym {GymId}", id);
+        }
+
         return NoContent();
     }
 }

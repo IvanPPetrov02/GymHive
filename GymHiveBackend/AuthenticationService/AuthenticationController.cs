@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BLL.DTOs;
+using BLL.Entities;
 using BLL.ManagerInterfaces;
 using BLL.Services;
 using Microsoft.Extensions.Logging;
@@ -50,7 +51,7 @@ namespace AuthenticationService.Controllers
                     {
                         await _eventPublisher.PublishAsync(new UserRegisteredEvent
                         {
-                            UserId = 0, // TODO: Get actual user ID from manager after registration
+                            UserId = Guid.Empty, // TODO: Get actual user ID from manager after registration
                             Email = userDto.Email,
                             Username = userDto.Email,
                             RoleId = 1 // Default role
@@ -130,7 +131,26 @@ namespace AuthenticationService.Controllers
         {
             try
             {
+                // Get user info before deletion
+                var user = await _userManager.GetUserByIdAsync(uuid);
+                if (user == null)
+                {
+                    return NotFound(new { Message = "User not found" });
+                }
+
+                // Delete user from authentication database
                 await _userManager.DeleteUserAsync(uuid);
+
+                // Publish UserDeletedEvent - triggers choreographed SAGA
+                // Other services will react to this event and clean up their data
+                _logger.LogInformation("Publishing UserDeletedEvent for user {UserId}", uuid);
+                await _eventPublisher.PublishAsync(new UserDeletedEvent
+                {
+                    UserId = Guid.Parse(uuid),
+                    Email = user.Email,
+                    DeletedAt = DateTime.UtcNow
+                });
+
                 return NoContent();
             }
             catch (InvalidOperationException ex)
@@ -188,6 +208,30 @@ namespace AuthenticationService.Controllers
         {
             await _userManager.ActivateOrDeactivateUserAsync(uuid, false);
             return Ok();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("update-role/{uuid}")]
+        public async Task<IActionResult> UpdateUserRole(string uuid, [FromBody] UpdateRoleDTO updateRoleDto)
+        {
+            try
+            {
+                if (!Enum.TryParse<Role>(updateRoleDto.Role, true, out var role))
+                {
+                    return BadRequest(new { Message = "Invalid role. Valid roles are: User, Moderator, Admin" });
+                }
+
+                await _userManager.UpdateUserRoleAsync(uuid, role);
+                return Ok(new { Message = $"User role updated to {role}" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
         }
 
         [Authorize]
@@ -259,6 +303,109 @@ namespace AuthenticationService.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Admin-only endpoint to create moderator users with auto-generated emails
+        /// Email format: firstname.lastname@gymname.com (incrementing 02, 03, etc. if duplicate)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPost("create-moderator")]
+        public async Task<IActionResult> CreateModerator([FromBody] CreateModeratorDTO moderatorDto)
+        {
+            try
+            {
+                _logger.LogInformation("🔵 CreateModerator called - FirstName: {FirstName}, LastName: {LastName}, GymName: {GymName}, GymId: {GymId}", 
+                    moderatorDto.FirstName, moderatorDto.LastName, moderatorDto.GymName, moderatorDto.GymId);
+
+                // Generate email: firstname.lastname@gymname.com
+                var gymNameSlug = moderatorDto.GymName.ToLower().Replace(" ", "");
+                var baseEmail = $"{moderatorDto.FirstName.ToLower()}.{moderatorDto.LastName.ToLower()}@{gymNameSlug}.com";
+                var email = baseEmail;
+                var counter = 1;
+
+                // Check if email exists and increment with 02, 03, etc.
+                var existingUser = await _userManager.GetUserByEmailAsync(email);
+                while (existingUser != null)
+                {
+                    counter++;
+                    email = $"{moderatorDto.FirstName.ToLower()}.{moderatorDto.LastName.ToLower()}{counter:D2}@{gymNameSlug}.com";
+                    existingUser = await _userManager.GetUserByEmailAsync(email);
+                }
+
+                // Register the user with default password
+                var defaultPassword = "Moderator123!";
+                await _userManager.RegisterUserAsync(new BLL.DTOs.UserRegisterDTO
+                {
+                    Email = email,
+                    Password = defaultPassword,
+                    Name = moderatorDto.FirstName,
+                    Surname = moderatorDto.LastName
+                });
+
+                // Immediately update role to Moderator and set GymId
+                var createdUser = await _userManager.GetUserByEmailAsync(email);
+                if (createdUser != null)
+                {
+                    _logger.LogInformation("🔵 About to update role and GymId for user {UUID} - GymId value: {GymId}", 
+                        createdUser.UUID, moderatorDto.GymId);
+                    
+                    await _userManager.UpdateUserRoleAsync(createdUser.UUID.ToString(), Role.Moderator);
+                    _logger.LogInformation("🔵 Role updated to Moderator");
+                    
+                    await _userManager.UpdateUserGymIdAsync(createdUser.UUID.ToString(), moderatorDto.GymId);
+                    _logger.LogInformation("🔵 GymId updated to {GymId}", moderatorDto.GymId);
+                    
+                    // Verify the GymId was actually set
+                    var verifyUser = await _userManager.GetUserByEmailAsync(email);
+                    _logger.LogInformation("🔵 Verification - User {UUID} now has GymId: {GymId}", 
+                        verifyUser?.UUID, verifyUser?.GymId);
+
+                    _logger.LogInformation("✅ Created moderator: {Email} (UUID: {UUID}, Role: Moderator, GymId: {GymId})", 
+                        email, createdUser.UUID, moderatorDto.GymId);
+
+                    // Publish event so GymService can link this moderator to the gym
+                    try
+                    {
+                        await _eventPublisher.PublishAsync(new ModeratorsCreatedEvent
+                        {
+                            GymId = moderatorDto.GymId,
+                            Moderators = new List<CreatedModeratorInfo>
+                            {
+                                new CreatedModeratorInfo
+                                {
+                                    UserId = createdUser.UUID,
+                                    Email = email,
+                                    FirstName = moderatorDto.FirstName,
+                                    LastName = moderatorDto.LastName
+                                }
+                            }
+                        });
+                        _logger.LogInformation("✅ Published ModeratorsCreatedEvent for gym {GymId}", moderatorDto.GymId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to publish ModeratorsCreatedEvent");
+                    }
+
+                    return Ok(new { 
+                        message = "Moderator created successfully",
+                        email = email,
+                        userId = createdUser.UUID,
+                        defaultPassword = defaultPassword
+                    });
+                }
+                else
+                {
+                    _logger.LogError("❌ Failed to retrieve created user {Email}", email);
+                    return StatusCode(500, new { message = "Failed to create moderator" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ ERROR creating moderator");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
         // Helper method to map User entity to UserDTO with role as string
         private UserDTO MapUserToDto(BLL.Entities.User user)
         {
@@ -270,7 +417,8 @@ namespace AuthenticationService.Controllers
                 Surname = user.Surname,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,
-                Role = user.Role.ToString() // Converts enum to string: "User", "Moderator", or "Admin"
+                Role = user.Role.ToString(), // Converts enum to string: "User", "Moderator", or "Admin"
+                GymId = user.GymId
             };
         }
     }

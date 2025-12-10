@@ -12,6 +12,7 @@ export interface User {
   isActive: boolean;
   createdAt: string;
   role: string;
+  gymId?: number;
 }
 
 export interface LoginCredentials {
@@ -115,6 +116,9 @@ export async function initAuth() {
 
         if (response.ok) {
           const userData = await response.json();
+          console.log('[Auth] Token validated, user data:', userData);
+          console.log('[Auth] User role:', userData.role);
+          console.log('[Auth] User gymId:', userData.gymId);
           user.set(userData);
           accessToken.set(token);
           isAuthenticated.set(true);
@@ -184,6 +188,9 @@ export async function login(credentials: LoginCredentials): Promise<boolean> {
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
+        console.log('[Auth] Login successful, user data:', userData);
+        console.log('[Auth] User role:', userData.role);
+        console.log('[Auth] User gymId:', userData.gymId);
         saveToStorage(token, userData);
         accessToken.set(token);
         user.set(userData);
@@ -263,6 +270,9 @@ export async function logout() {
   user.set(null);
   accessToken.set(null);
   authError.set(null);
+  
+  // Redirect to home page after logout
+  window.location.hash = '#/';
 }
 
 export async function getAccessToken(): Promise<string | null> {

@@ -88,6 +88,14 @@ builder.Services.AddSingleton<IEventPublisher>(sp =>
     var logger = sp.GetRequiredService<ILogger<RabbitMQEventPublisher>>();
     return new RabbitMQEventPublisher(rabbitMqConnection, logger);
 });
+builder.Services.AddSingleton<IEventSubscriber>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<RabbitMQEventSubscriber>>();
+    return new RabbitMQEventSubscriber(rabbitMqConnection, "authentication-service", logger);
+});
+
+// Register Background Services
+builder.Services.AddHostedService<AuthenticationService.Services.AuthEventConsumer>();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["AppSettings:Token"] ?? throw new InvalidOperationException("JWT token key not configured");

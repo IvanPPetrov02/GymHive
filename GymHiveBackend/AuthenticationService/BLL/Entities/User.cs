@@ -30,6 +30,9 @@ public class User
 
     public Role Role { get; set; } = Role.User;
 
+    // GymId for moderators - null for regular users and admins
+    public int? GymId { get; set; }
+
     public User(string email, string name, string surname, byte[]? image, bool isActive, DateTime createdAt, Role role)
     {
         UUID = Guid.NewGuid();

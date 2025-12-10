@@ -1,14 +1,11 @@
 using NotificationsService.BLL.ManagerInterfaces;
 using NotificationsService.BLL.Managers;
+using NotificationsService.BLL.RepositoryInterfaces;
 using NotificationsService.DAL.DbContexts;
-using NotificationsService.DAL.RepositoryInterfaces;
 using NotificationsService.DAL.Repositories;
 using NotificationsService.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Text;
 using Prometheus;
 using GymHive.Messaging;
 
@@ -91,29 +88,8 @@ builder.Services.AddScoped<IUserContextService, UserContextService>();
 // Register Event Consumer as Hosted Service
 builder.Services.AddHostedService<NotificationEventConsumer>();
 
-// Configure JWT Authentication
-var jwtKey = builder.Configuration["AppSettings:Token"] ?? throw new InvalidOperationException("JWT token key not configured");
-var key = Encoding.ASCII.GetBytes(jwtKey);
-
-builder.Services.AddAuthentication(x =>
-{
-    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(x =>
-{
-    x.RequireHttpsMetadata = false;
-    x.SaveToken = true;
-    x.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false
-    };
-});
-
-builder.Services.AddAuthorization();
+// No authentication/authorization middleware needed
+// API Gateway handles token validation and adds user headers
 
 var app = builder.Build();
 
@@ -142,8 +118,8 @@ app.UseCors("AllowAll");
 app.UseRouting();
 app.UseHttpMetrics();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// No authentication/authorization middleware needed
+// API Gateway handles token validation and adds user headers
 
 app.MapControllers();
 

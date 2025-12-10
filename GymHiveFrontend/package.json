@@ -19,9 +19,10 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "@auth0/auth0-spa-js": "^2.1.0",
     "@tailwindcss/vite": "^4.1.14",
+    "qrcode": "^1.5.4",
     "svelte-spa-router": "^4.0.1",
-    "tailwindcss": "^4.1.14",
-    "@auth0/auth0-spa-js": "^2.1.0"
+    "tailwindcss": "^4.1.14"
   }
 }

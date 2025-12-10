@@ -1,0 +1,13 @@
+﻿C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\DTOs\GymDTO.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\DTOs\GymGroupDTO.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Entities\Gym.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Entities\GymGroup.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Entities\GymGroupMember.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Entities\GymModerator.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Entities\Membership.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\ManagerInterfaces\IGymGroupManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\ManagerInterfaces\IGymManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Managers\GymGroupManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\Managers\GymManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\RepositoryInterfaces\IGymGroupRepository.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\GymService\BLL\RepositoryInterfaces\IGymRepository.cs

@@ -4,6 +4,7 @@ using GymService.BLL.ManagerInterfaces;
 using GymService.Controllers;
 using GymService.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -13,13 +14,15 @@ public class GymGroupsControllerTests
 {
     private readonly Mock<IGymGroupManager> _mockGymGroupManager;
     private readonly Mock<IUserContextService> _mockUserContext;
+    private readonly Mock<ILogger<GymGroupsController>> _mockLogger;
     private readonly GymGroupsController _controller;
 
     public GymGroupsControllerTests()
     {
         _mockGymGroupManager = new Mock<IGymGroupManager>();
         _mockUserContext = new Mock<IUserContextService>();
-        _controller = new GymGroupsController(_mockGymGroupManager.Object, _mockUserContext.Object);
+        _mockLogger = new Mock<ILogger<GymGroupsController>>();
+        _controller = new GymGroupsController(_mockGymGroupManager.Object, _mockUserContext.Object, _mockLogger.Object);
     }
 
     #region GetAllGymGroups Tests
@@ -136,7 +139,7 @@ public class GymGroupsControllerTests
     public async Task GetGymGroupsByModeratorId_AsModerator_ReturnsOkWithGroups()
     {
         // Arrange
-        var moderatorId = 1;
+        var moderatorId = Guid.NewGuid();
         var gymGroups = new List<GymGroupDTO>
         {
             new GymGroupDTO { Id = 1, Name = "Group One", ModeratorId = moderatorId }
@@ -159,7 +162,7 @@ public class GymGroupsControllerTests
     public async Task GetGymGroupsByModeratorId_AsAdmin_ReturnsOkWithGroups()
     {
         // Arrange
-        var moderatorId = 1;
+        var moderatorId = Guid.NewGuid();
         var gymGroups = new List<GymGroupDTO>
         {
             new GymGroupDTO { Id = 1, Name = "Group One", ModeratorId = moderatorId }
@@ -183,7 +186,7 @@ public class GymGroupsControllerTests
     public async Task GetGymGroupsByModeratorId_AsUser_ReturnsForbidden()
     {
         // Arrange
-        var moderatorId = 1;
+        var moderatorId = Guid.NewGuid();
         _mockUserContext.Setup(u => u.IsInRole("Moderator")).Returns(false);
         _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(false);
 

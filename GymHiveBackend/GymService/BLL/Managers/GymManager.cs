@@ -8,10 +8,12 @@ namespace GymService.BLL.Managers;
 public class GymManager : IGymManager
 {
     private readonly IGymRepository _gymRepository;
+    private readonly IGymGroupRepository _gymGroupRepository;
 
-    public GymManager(IGymRepository gymRepository)
+    public GymManager(IGymRepository gymRepository, IGymGroupRepository gymGroupRepository)
     {
         _gymRepository = gymRepository;
+        _gymGroupRepository = gymGroupRepository;
     }
 
     public async Task<IEnumerable<GymDTO>> GetAllGymsAsync()
@@ -63,6 +65,19 @@ public class GymManager : IGymManager
         };
 
         var createdGym = await _gymRepository.CreateAsync(gym);
+
+        // Auto-create default gym group
+        var defaultGroup = new GymGroup
+        {
+            GymId = createdGym.Id,
+            Name = "General Members",
+            Description = $"Default group for all members of {createdGym.Name}",
+            ModeratorId = Guid.Empty, // No moderator initially
+            MaxMembers = 999,
+            Schedule = "Open to all members",
+            CreatedAt = DateTime.UtcNow
+        };
+        await _gymGroupRepository.CreateAsync(defaultGroup);
 
         return new GymDTO
         {

@@ -11,6 +11,8 @@ public class GymDbContext : DbContext
 
     public DbSet<Gym> Gyms { get; set; }
     public DbSet<GymGroup> GymGroups { get; set; }
+    public DbSet<GymModerator> GymModerators { get; set; }
+    public DbSet<GymGroupMember> GymGroupMembers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +34,11 @@ public class GymDbContext : DbContext
                 .WithOne(gg => gg.Gym)
                 .HasForeignKey(gg => gg.GymId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(g => g.Moderators)
+                .WithOne(gm => gm.Gym)
+                .HasForeignKey(gm => gm.GymId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure GymGroup entity
@@ -41,6 +48,25 @@ public class GymDbContext : DbContext
             entity.Property(gg => gg.Name).IsRequired().HasMaxLength(200);
             entity.Property(gg => gg.Description).HasMaxLength(1000);
             entity.Property(gg => gg.Schedule).HasMaxLength(500);
+        });
+
+        // Configure GymModerator entity
+        modelBuilder.Entity<GymModerator>(entity =>
+        {
+            entity.HasKey(gm => gm.Id);
+            entity.HasIndex(gm => new { gm.GymId, gm.ModeratorUserId }).IsUnique(); // One moderator per gym
+        });
+
+        // Configure GymGroupMember entity
+        modelBuilder.Entity<GymGroupMember>(entity =>
+        {
+            entity.HasKey(gm => gm.Id);
+            entity.HasIndex(gm => new { gm.GroupId, gm.UserId }).IsUnique(); // One user per group
+            
+            entity.HasOne(gm => gm.Group)
+                .WithMany()
+                .HasForeignKey(gm => gm.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

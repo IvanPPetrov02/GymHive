@@ -40,7 +40,7 @@ public class MembershipsController : ControllerBase
 
     // User can view their own, Admin can view any
     [HttpGet("{id}")]
-    public async Task<ActionResult<MembershipDTO>> GetMembershipById(int id)
+    public async Task<ActionResult<MembershipDTO>> GetMembershipById(string id)
     {
         var membership = await _membershipManager.GetMembershipByIdAsync(id);
         if (membership == null) return NotFound();
@@ -86,33 +86,43 @@ public class MembershipsController : ControllerBase
     {
         // Get user ID from headers
         var userId = _userContext.GetCurrentUserId();
-        var membership = await _membershipManager.CreateMembershipAsync(userId, createMembershipDto);
         
-        // Publish MembershipPurchasedEvent to RabbitMQ
         try
         {
-            await _eventPublisher.PublishAsync(new MembershipPurchasedEvent
+            var membership = await _membershipManager.CreateMembershipAsync(userId, createMembershipDto);
+            
+            // Publish MembershipPurchasedEvent to RabbitMQ
+            try
             {
-                MembershipId = membership.Id,
-                UserId = userId.GetHashCode(), // Convert Guid to int for event (temporary solution)
-                GymId = membership.GymId,
-                StartDate = membership.StartDate,
-                EndDate = membership.EndDate,
-                Price = membership.Price
-            });
-            _logger.LogInformation($"Published MembershipPurchasedEvent for membership {membership.Id} with price {membership.Price}");
+                await _eventPublisher.PublishAsync(new MembershipPurchasedEvent
+                {
+                    MembershipId = membership.Id,
+                    UserId = userId,
+                    GymId = membership.GymId,
+                    GymName = membership.GymName,
+                    StartDate = membership.StartDate,
+                    EndDate = membership.EndDate,
+                    Price = membership.Price
+                });
+                _logger.LogInformation($"Published MembershipPurchasedEvent for membership {membership.Id} at {membership.GymName} with price {membership.Price}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish MembershipPurchasedEvent");
+            }
+            
+            return CreatedAtAction(nameof(GetMembershipById), new { id = membership.Id }, membership);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish MembershipPurchasedEvent");
+            _logger.LogError(ex, "Error creating membership");
+            return StatusCode(500, new { error = "Failed to create membership", details = ex.Message });
         }
-        
-        return CreatedAtAction(nameof(GetMembershipById), new { id = membership.Id }, membership);
     }
 
     // User can update their own membership, Admin can update any
     [HttpPut("{id}")]
-    public async Task<ActionResult<MembershipDTO>> UpdateMembership(int id, [FromBody] UpdateMembershipDTO updateMembershipDto)
+    public async Task<ActionResult<MembershipDTO>> UpdateMembership(string id, [FromBody] UpdateMembershipDTO updateMembershipDto)
     {
         var membership = await _membershipManager.UpdateMembershipAsync(id, updateMembershipDto);
         if (membership == null) return NotFound();
@@ -121,7 +131,7 @@ public class MembershipsController : ControllerBase
 
     // Admin only - Delete membership
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteMembership(int id)
+    public async Task<ActionResult> DeleteMembership(string id)
     {
         // Check if user is Admin
         if (!_userContext.IsInRole("Admin"))

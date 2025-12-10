@@ -9,6 +9,10 @@
   import LoadingSpinner from '../components/ui/LoadingSpinner.svelte';
   import Modal from '../components/ui/Modal.svelte';
   import { push } from 'svelte-spa-router';
+  import ContactInfoCard from '../components/gymDetails/ContactInfoCard.svelte';
+  import FacilitiesGrid from '../components/gymDetails/FacilitiesGrid.svelte';
+  import GymGroupCard from '../components/gymDetails/GymGroupCard.svelte';
+  import HoursCard from '../components/gymDetails/HoursCard.svelte';
 
   export let params: { id: string } = { id: '' };
   
@@ -22,7 +26,8 @@
   let membershipForm = {
     type: 'Monthly',
     startDate: new Date().toISOString().split('T')[0],
-    duration: 1 // months
+    duration: 1, // months
+    autoRenew: false
   };
   let isPurchasing = false;
 
@@ -80,7 +85,8 @@
         membershipType: membershipForm.type,
         startDate: new Date(membershipForm.startDate).toISOString(),
         endDate: endDate,
-        price: membershipPrice
+        price: membershipPrice,
+        autoRenew: membershipForm.autoRenew
       };
 
       await membershipsApi.create(membershipData);
@@ -173,21 +179,7 @@
             {/if}
 
             <!-- Facilities -->
-            {#if gym.facilities && gym.facilities.length > 0}
-              <div class="card-panel p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Facilities & Amenities</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {#each gym.facilities as facility}
-                    <div class="flex items-center gap-2 text-gray-700">
-                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {facility}
-                    </div>
-                  {/each}
-                </div>
-              </div>
-            {/if}
+            <FacilitiesGrid facilities={gym.facilities} />
 
             <!-- Groups -->
             {#if groups.length > 0}
@@ -195,102 +187,20 @@
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Gym Groups</h2>
                 <div class="space-y-3">
                   {#each groups as group}
-                    <div class="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
-                      <div class="flex items-start justify-between">
-                        <div>
-                          <h3 class="font-semibold text-lg text-gray-900">{group.name}</h3>
-                          {#if group.description}
-                            <p class="text-sm text-gray-600 mt-1">{group.description}</p>
-                          {/if}
-                          <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                            <span>{group.memberCount} members</span>
-                            <span>Mod: {group.moderatorName}</span>
-                          </div>
-                        </div>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                          {group.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                          {group.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
+                    <GymGroupCard {group} />
                   {/each}
                 </div>
               </div>
             {/if}
 
             <!-- Hours -->
-            <div class="card-panel p-6">
-              <h2 class="text-2xl font-bold text-gray-900 mb-4">Hours of Operation</h2>
-              <div class="flex items-center gap-4 text-gray-700">
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span class="font-medium">Opening:</span>
-                  {formatHours(gym.openingTime)}
-                </div>
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span class="font-medium">Closing:</span>
-                  {formatHours(gym.closingTime)}
-                </div>
-              </div>
-            </div>
+            <HoursCard openingTime={gym.openingTime} closingTime={gym.closingTime} />
           </div>
 
           <!-- Sidebar -->
           <div class="space-y-6">
             <!-- Contact Info -->
-            <div class="card-panel p-6 sticky top-6">
-              <h2 class="text-xl font-bold text-gray-900 mb-4">Contact Information</h2>
-              
-              <div class="space-y-4">
-                {#if gym.phoneNumber}
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Phone</div>
-                    <a href="tel:{gym.phoneNumber}" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      {gym.phoneNumber}
-                    </a>
-                  </div>
-                {/if}
-                
-                {#if gym.email}
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Email</div>
-                    <a href="mailto:{gym.email}" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      {gym.email}
-                    </a>
-                  </div>
-                {/if}
-                
-                {#if gym.website}
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Website</div>
-                    <a href={gym.website} target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                      </svg>
-                      Visit Website
-                    </a>
-                  </div>
-                {/if}
-              </div>
-
-              <button
-                on:click={() => showPurchaseModal = true}
-                class="btn-primary w-full mt-6 py-4 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow"
-              >
-                Purchase Membership
-              </button>
-            </div>
+            <ContactInfoCard gym={gym} on:purchase={() => showPurchaseModal = true} />
           </div>
         </div>
       </div>
@@ -342,6 +252,19 @@
           class="no-border-input w-full"
           required
         />
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <input
+          id="autoRenew"
+          type="checkbox"
+          bind:checked={membershipForm.autoRenew}
+          disabled={isPurchasing}
+          class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+        />
+        <label for="autoRenew" class="text-sm font-medium text-gray-700">
+          Automatically renew my membership when it expires
+        </label>
       </div>
 
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">

@@ -18,7 +18,7 @@ public class ClassBookedEvent : BaseEvent
     
     public int BookingId { get; set; }
     public int ClassId { get; set; }
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
     public int GymId { get; set; }
     public DateTime BookedAt { get; set; }
 }
@@ -38,5 +38,5 @@ public class BookingCancelledEvent : BaseEvent
     
     public int BookingId { get; set; }
     public int ClassId { get; set; }
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
 }

@@ -15,4 +15,5 @@ public class Gym
     
     // Navigation properties
     public ICollection<GymGroup> GymGroups { get; set; } = new List<GymGroup>();
+    public ICollection<GymModerator> Moderators { get; set; } = new List<GymModerator>();
 }

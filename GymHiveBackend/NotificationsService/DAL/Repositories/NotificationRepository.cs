@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using NotificationsService.DAL.Entities;
+using NotificationsService.BLL.Entities;
+using NotificationsService.BLL.RepositoryInterfaces;
 using NotificationsService.DAL.DbContexts;
-using NotificationsService.DAL.RepositoryInterfaces;
 
 namespace NotificationsService.DAL.Repositories;
 
@@ -18,6 +18,16 @@ public class NotificationRepository : INotificationRepository
     {
         return await _context.Notifications
             .Where(n => n.UserId == userId)
+            .OrderByDescending(n => n.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task<List<Notification>> GetUnreadNotificationsAsync(Guid userId, int skip = 0, int take = 20)
+    {
+        return await _context.Notifications
+            .Where(n => n.UserId == userId && !n.IsRead)
             .OrderByDescending(n => n.CreatedAt)
             .Skip(skip)
             .Take(take)
@@ -80,5 +90,23 @@ public class NotificationRepository : INotificationRepository
         _context.Notifications.Remove(notification);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var notification = await _context.Notifications.FindAsync(id);
+        
+        if (notification == null) return false;
+
+        _context.Notifications.Remove(notification);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<List<Notification>> GetByUserIdAsync(Guid userId)
+    {
+        return await _context.Notifications
+            .Where(n => n.UserId == userId)
+            .ToListAsync();
     }
 }

@@ -76,6 +76,24 @@ public class UserContextService : IUserContextService
         }
     }
 
+    public int? GetCurrentUserGymId()
+    {
+        var gymIdStr = GetHeaderValue("X-User-GymId");
+        
+        if (string.IsNullOrEmpty(gymIdStr))
+        {
+            return null;  // Regular users and admins don't have a gymId
+        }
+
+        if (int.TryParse(gymIdStr, out var gymId))
+        {
+            return gymId;
+        }
+
+        _logger.LogWarning("Invalid X-User-GymId format: {GymId}", gymIdStr);
+        return null;
+    }
+
     private string? GetHeaderValue(string headerName)
     {
         var context = _httpContextAccessor.HttpContext;

@@ -25,4 +25,9 @@ public interface IUserContextService
     /// Checks if the current user has the specified role
     /// </summary>
     bool IsInRole(string role);
+
+    /// <summary>
+    /// Gets the current user's gym ID from the request headers (for moderators)
+    /// </summary>
+    int? GetCurrentUserGymId();
 }

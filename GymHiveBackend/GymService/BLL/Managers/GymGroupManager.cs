@@ -47,7 +47,7 @@ public class GymGroupManager : IGymGroupManager
         return await MapToDTOsAsync(gymGroups);
     }
 
-    public async Task<IEnumerable<GymGroupDTO>> GetGymGroupsByModeratorIdAsync(int moderatorId)
+    public async Task<IEnumerable<GymGroupDTO>> GetGymGroupsByModeratorIdAsync(Guid moderatorId)
     {
         var gymGroups = await _gymGroupRepository.GetByModeratorIdAsync(moderatorId);
         return await MapToDTOsAsync(gymGroups);
@@ -113,6 +113,37 @@ public class GymGroupManager : IGymGroupManager
     public async Task<bool> DeleteGymGroupAsync(int id)
     {
         return await _gymGroupRepository.DeleteAsync(id);
+    }
+
+    public async Task<IEnumerable<GymGroupMemberDTO>> GetGroupMembersAsync(int groupId)
+    {
+        var members = await _gymGroupRepository.GetGroupMembersAsync(groupId);
+        // TODO: Fetch user details from AuthenticationService if needed
+        return members.Select(m => new GymGroupMemberDTO
+        {
+            Id = m.Id,
+            GroupId = m.GroupId,
+            UserId = m.UserId,
+            UserName = "User", // Placeholder - would need to call auth service
+            UserEmail = "",
+            JoinedAt = m.JoinedAt
+        });
+    }
+
+    public async Task AddMemberAsync(int groupId, Guid userId)
+    {
+        var member = new GymGroupMember
+        {
+            GroupId = groupId,
+            UserId = userId,
+            JoinedAt = DateTime.UtcNow
+        };
+        await _gymGroupRepository.AddMemberAsync(member);
+    }
+
+    public async Task RemoveMemberByUserIdAsync(int groupId, Guid userId)
+    {
+        await _gymGroupRepository.RemoveMemberByUserIdAsync(groupId, userId);
     }
 
     private async Task<IEnumerable<GymGroupDTO>> MapToDTOsAsync(IEnumerable<GymGroup> gymGroups)

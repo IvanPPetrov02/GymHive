@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkoutLoggingService.BLL.DTOs;
 using WorkoutLoggingService.BLL.ManagerInterfaces;
@@ -8,7 +7,6 @@ namespace WorkoutLoggingService.Controllers;
 
 [ApiController]
 [Route("api/workouts")]
-[Authorize]
 public class WorkoutLogsController : ControllerBase
 {
     private readonly IWorkoutLogManager _manager;
@@ -25,14 +23,36 @@ public class WorkoutLogsController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("my-logs")]
-    public async Task<IActionResult> GetMyWorkoutLogs([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    [HttpGet("my-workouts")]
+    public async Task<IActionResult> GetMyWorkouts([FromQuery] string? startDate, [FromQuery] string? endDate)
     {
         try
         {
-            var userId = _userContext.GetUserId();
-            var logs = await _manager.GetUserWorkoutLogsAsync(userId, skip, take);
-            return Ok(logs);
+            var userId = _userContext.GetCurrentUserId();
+            
+            // Default to current week if no dates provided
+            var start = string.IsNullOrEmpty(startDate) 
+                ? DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek)
+                : DateTime.Parse(startDate).Date;
+            
+            var end = string.IsNullOrEmpty(endDate)
+                ? start.AddDays(6)
+                : DateTime.Parse(endDate).Date;
+            
+            // Ensure we don't go into the future
+            var today = DateTime.UtcNow.Date;
+            if (start > today)
+                start = today;
+            if (end > today)
+                end = today;
+            
+            // Ensure we don't go back more than 1 month
+            var oneMonthAgo = today.AddMonths(-1);
+            if (start < oneMonthAgo)
+                start = oneMonthAgo;
+            
+            var visits = await _manager.GetGymVisitsAsync(userId, start, end);
+            return Ok(visits);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -40,19 +60,19 @@ public class WorkoutLogsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving workout logs");
-            return StatusCode(500, new { message = "An error occurred while retrieving workout logs" });
+            _logger.LogError(ex, "Error retrieving gym visits");
+            return StatusCode(500, new { message = "An error occurred while retrieving gym visits" });
         }
     }
 
-    [HttpPost("checkin")]
-    public async Task<IActionResult> CheckIn([FromBody] CheckInRequest request)
+    [HttpPost("log-visit")]
+    public async Task<IActionResult> LogVisit([FromBody] LogGymVisitDTO dto)
     {
         try
         {
-            var userId = _userContext.GetUserId();
-            var workoutLog = await _manager.CheckInAsync(userId, request.GymId);
-            return Ok(workoutLog);
+            var userId = _userContext.GetCurrentUserId();
+            var visit = await _manager.LogGymVisitAsync(userId, dto);
+            return Ok(visit);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -64,19 +84,19 @@ public class WorkoutLogsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during check-in");
-            return StatusCode(500, new { message = "An error occurred during check-in" });
+            _logger.LogError(ex, "Error logging gym visit");
+            return StatusCode(500, new { message = "An error occurred while logging gym visit" });
         }
     }
 
-    [HttpPut("{id}/checkout")]
-    public async Task<IActionResult> CheckOut(int id)
+    [HttpDelete("{visitId}")]
+    public async Task<IActionResult> DeleteVisit(int visitId)
     {
         try
         {
-            var userId = _userContext.GetUserId();
-            var workoutLog = await _manager.CheckOutAsync(userId, id);
-            return Ok(workoutLog);
+            var userId = _userContext.GetCurrentUserId();
+            await _manager.DeleteGymVisitAsync(userId, visitId);
+            return NoContent();
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -86,34 +106,11 @@ public class WorkoutLogsController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during check-out");
-            return StatusCode(500, new { message = "An error occurred during check-out" });
-        }
-    }
-
-    [HttpGet("stats")]
-    public async Task<IActionResult> GetWorkoutStats()
-    {
-        try
-        {
-            var userId = _userContext.GetUserId();
-            var stats = await _manager.GetWorkoutStatsAsync(userId);
-            return Ok(stats);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving workout stats");
-            return StatusCode(500, new { message = "An error occurred while retrieving workout stats" });
+            _logger.LogError(ex, "Error deleting gym visit");
+            return StatusCode(500, new { message = "An error occurred while deleting gym visit" });
         }
     }
 }
+

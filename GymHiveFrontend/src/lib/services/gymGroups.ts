@@ -3,15 +3,13 @@ import { getJson, postJson, putJson, deleteRequest } from '../api';
 
 export interface GymGroup {
   id: number;
-  name: string;
-  description?: string;
   gymId: number;
   gymName: string;
+  name: string;
+  description: string;
   moderatorId: string;
-  moderatorName: string;
-  memberCount: number;
-  createdAt: string;
-  isActive: boolean;
+  maxMembers: number;
+  schedule: string;
 }
 
 export interface GymGroupMember {
@@ -21,7 +19,6 @@ export interface GymGroupMember {
   userName: string;
   userEmail: string;
   joinedAt: string;
-  isActive: boolean;
 }
 
 export interface CreateGymGroupDTO {
@@ -29,6 +26,8 @@ export interface CreateGymGroupDTO {
   description?: string;
   gymId: number;
   moderatorId: string;
+  maxMembers: number;
+  schedule: string;
 }
 
 export interface UpdateGymGroupDTO {
@@ -36,6 +35,8 @@ export interface UpdateGymGroupDTO {
   description?: string;
   moderatorId?: string;
   isActive?: boolean;
+  maxMembers?: number;
+  schedule?: string;
 }
 
 export interface AddMemberDTO {
@@ -59,7 +60,7 @@ export const gymGroupsApi = {
     return getJson<GymGroup[]>(`/api/gymgroups/gym/${gymId}`);
   },
 
-  // Get groups where user is moderator
+  // Get groups where user is moderator (based on their gymId)
   async getModeratedGroups(): Promise<GymGroup[]> {
     return getJson<GymGroup[]>('/api/gymgroups/my-moderated');
   },
@@ -92,5 +93,20 @@ export const gymGroupsApi = {
   // Remove member from gym group (Moderator/Admin)
   async removeMember(groupId: number, memberId: number): Promise<void> {
     return deleteRequest(`/api/gymgroups/${groupId}/members/${memberId}`);
+  },
+
+  // Join a gym group (User)
+  async joinGroup(groupId: number, userId: string): Promise<void> {
+    return postJson(`/api/gymgroups/${groupId}/join`, { userId });
+  },
+
+  // Leave a gym group (User)
+  async leaveGroup(groupId: number, userId: string): Promise<void> {
+    return postJson(`/api/gymgroups/${groupId}/leave`, { userId });
+  },
+
+  // Remove specific user from group (Moderator/Admin)
+  async removeMemberByUserId(groupId: number, userId: string): Promise<void> {
+    return deleteRequest(`/api/gymgroups/${groupId}/members/${userId}`);
   }
 };

@@ -14,7 +14,7 @@ public class RabbitMQEventSubscriber : IEventSubscriber, IDisposable
     private readonly IChannel _channel;
     private readonly ILogger<RabbitMQEventSubscriber> _logger;
     private readonly string _serviceName;
-    private readonly List<AsyncEventingBasicConsumer> _consumers = new();
+    private readonly List<(AsyncEventingBasicConsumer Consumer, string QueueName)> _consumers = new();
 
     public RabbitMQEventSubscriber(
         string connectionString, 
@@ -103,7 +103,7 @@ public class RabbitMQEventSubscriber : IEventSubscriber, IDisposable
                 }
             };
 
-            _consumers.Add(consumer);
+            _consumers.Add((consumer, queueName));
 
             _logger.LogInformation(
                 "Subscribed to {EventType} on queue {QueueName}",
@@ -120,13 +120,15 @@ public class RabbitMQEventSubscriber : IEventSubscriber, IDisposable
 
     public void StartConsuming()
     {
-        foreach (var consumer in _consumers)
+        foreach (var (consumer, queueName) in _consumers)
         {
             _channel.BasicConsumeAsync(
-                queue: string.Empty, // Will use the queue from subscription
+                queue: queueName,
                 autoAck: false,
                 consumer: consumer
             ).GetAwaiter().GetResult();
+            
+            _logger.LogInformation("Started consuming from queue {QueueName}", queueName);
         }
 
         _logger.LogInformation("Started consuming messages for service {ServiceName}", _serviceName);

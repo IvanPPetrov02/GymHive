@@ -1,6 +1,7 @@
 using NotificationsService.BLL.DTOs;
+using NotificationsService.BLL.Entities;
 using NotificationsService.BLL.ManagerInterfaces;
-using NotificationsService.DAL.RepositoryInterfaces;
+using NotificationsService.BLL.RepositoryInterfaces;
 
 namespace NotificationsService.BLL.Managers;
 
@@ -16,6 +17,23 @@ public class NotificationManager : INotificationManager
     public async Task<List<NotificationDTO>> GetUserNotificationsAsync(Guid userId, int skip = 0, int take = 20)
     {
         var notifications = await _repository.GetUserNotificationsAsync(userId, skip, take);
+        
+        return notifications.Select(n => new NotificationDTO
+        {
+            Id = n.Id,
+            Type = n.Type,
+            Title = n.Title,
+            Message = n.Message,
+            RelatedEntityId = n.RelatedEntityId,
+            RelatedEntityType = n.RelatedEntityType,
+            IsRead = n.IsRead,
+            CreatedAt = n.CreatedAt
+        }).ToList();
+    }
+
+    public async Task<List<NotificationDTO>> GetUnreadNotificationsAsync(Guid userId, int skip = 0, int take = 20)
+    {
+        var notifications = await _repository.GetUnreadNotificationsAsync(userId, skip, take);
         
         return notifications.Select(n => new NotificationDTO
         {

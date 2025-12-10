@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using WorkoutLoggingService.DAL.Entities;
+using WorkoutLoggingService.BLL.Entities;
 
 namespace WorkoutLoggingService.DAL.DbContexts;
 
 public class WorkoutLoggingDbContext : DbContext
 {
-    public WorkoutLoggingDbContext(DbContextOptions<WorkoutLoggingDbContext> options) : base(options) { }
+    public WorkoutLoggingDbContext(DbContextOptions<WorkoutLoggingDbContext> options) : base(options)
+    {
+    }
 
     public DbSet<WorkoutLog> WorkoutLogs { get; set; }
 
@@ -19,13 +21,13 @@ public class WorkoutLoggingDbContext : DbContext
             entity.HasKey(w => w.Id);
             entity.Property(w => w.UserId).IsRequired();
             entity.Property(w => w.GymId).IsRequired();
-            entity.Property(w => w.CheckInTime).IsRequired();
-            entity.Property(w => w.CreatedAt).IsRequired();
+            entity.Property(w => w.VisitDate).IsRequired();
             
-            // Index for querying user's workouts
-            entity.HasIndex(w => new { w.UserId, w.CreatedAt });
-            // Index for checking active check-ins
-            entity.HasIndex(w => new { w.UserId, w.CheckOutTime });
+            // Index for querying user's gym visits by date
+            entity.HasIndex(w => new { w.UserId, w.VisitDate });
+            
+            // Unique constraint: one visit per gym per day
+            entity.HasIndex(w => new { w.UserId, w.GymId, w.VisitDate }).IsUnique();
         });
     }
 }

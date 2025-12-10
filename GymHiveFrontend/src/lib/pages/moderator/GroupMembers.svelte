@@ -26,6 +26,63 @@
   let removeMemberId: number | null = null;
   let isRemoving = false;
 
+  // Delete Group
+  let showDeleteGroupModal = false;
+  let isDeletingGroup = false;
+
+  // Create Group Modal
+  let showCreateGroupModal = false;
+  let newGroup = {
+    name: '',
+    description: '',
+    maxMembers: 20,
+    schedule: ''
+  };
+  let isCreatingGroup = false;
+
+  // Edit Group Modal
+  let showEditGroupModal = false;
+  let editGroup = {
+    description: '',
+    maxMembers: 20,
+    schedule: ''
+  };
+  let editSelectedDays: string[] = [];
+  let editScheduleTime = '08:00';
+  let isEditingGroup = false;
+
+  // Schedule builder
+  let selectedDays: string[] = [];
+  let scheduleTime = '08:00';
+  const daysOfWeek = [
+    { value: 'Mon', label: 'Monday' },
+    { value: 'Tue', label: 'Tuesday' },
+    { value: 'Wed', label: 'Wednesday' },
+    { value: 'Thu', label: 'Thursday' },
+    { value: 'Fri', label: 'Friday' },
+    { value: 'Sat', label: 'Saturday' },
+    { value: 'Sun', label: 'Sunday' }
+  ];
+
+  function toggleDay(day: string) {
+    if (selectedDays.includes(day)) {
+      selectedDays = selectedDays.filter(d => d !== day);
+    } else {
+      selectedDays = [...selectedDays, day];
+    }
+    updateScheduleString();
+  }
+
+  function updateScheduleString() {
+    if (selectedDays.length > 0 && scheduleTime) {
+      newGroup.schedule = `${selectedDays.join('/')} ${scheduleTime}`;
+    } else {
+      newGroup.schedule = '';
+    }
+  }
+
+  $: scheduleTime && updateScheduleString();
+
   $: if ($user?.role !== 'Moderator' && $user?.role !== 'Admin') {
     push('/');
     showToast('error', 'Access denied. Moderators only.');
@@ -99,6 +156,116 @@
     }
   }
 
+  async function handleCreateGroup() {
+    if (!$user?.gymId) {
+      showToast('error', 'Gym ID not found');
+      return;
+    }
+
+    isCreatingGroup = true;
+    try {
+      await gymGroupsApi.create({
+        gymId: $user.gymId,
+        name: newGroup.name,
+        description: newGroup.description,
+        moderatorId: $user.uuid,
+        maxMembers: newGroup.maxMembers,
+        schedule: newGroup.schedule
+      });
+      showToast('success', 'Group created successfully');
+      showCreateGroupModal = false;
+      // Reset form
+      newGroup = { name: '', description: '', maxMembers: 20, schedule: '' };
+      selectedDays = [];
+      scheduleTime = '08:00';
+      await loadMyGroups();
+    } catch (e: any) {
+      showToast('error', e.message || 'Failed to create group');
+    } finally {
+      isCreatingGroup = false;
+    }
+  }
+
+  function closeCreateGroupModal() {
+    showCreateGroupModal = false;
+    newGroup = { name: '', description: '', maxMembers: 20, schedule: '' };
+    selectedDays = [];
+    scheduleTime = '08:00';
+  }
+
+  function openEditGroupModal() {
+    if (!selectedGroup) return;
+    
+    editGroup = {
+      description: selectedGroup.description || '',
+      maxMembers: selectedGroup.maxMembers || 20,
+      schedule: selectedGroup.schedule || ''
+    };
+    
+    // Parse existing schedule
+    if (selectedGroup.schedule) {
+      const parts = selectedGroup.schedule.split(' ');
+      if (parts.length === 2) {
+        editSelectedDays = parts[0].split('/');
+        editScheduleTime = parts[1];
+      }
+    } else {
+      editSelectedDays = [];
+      editScheduleTime = '08:00';
+    }
+    
+    showEditGroupModal = true;
+  }
+
+  function toggleEditDay(day: string) {
+    if (editSelectedDays.includes(day)) {
+      editSelectedDays = editSelectedDays.filter(d => d !== day);
+    } else {
+      editSelectedDays = [...editSelectedDays, day];
+    }
+    updateEditScheduleString();
+  }
+
+  function updateEditScheduleString() {
+    if (editSelectedDays.length > 0 && editScheduleTime) {
+      editGroup.schedule = `${editSelectedDays.join('/')} ${editScheduleTime}`;
+    } else {
+      editGroup.schedule = '';
+    }
+  }
+
+  $: editScheduleTime && updateEditScheduleString();
+
+  async function handleEditGroup() {
+    if (!selectedGroup) return;
+    
+    isEditingGroup = true;
+    try {
+      await gymGroupsApi.update(selectedGroup.id, {
+        description: editGroup.description,
+        maxMembers: editGroup.maxMembers,
+        schedule: editGroup.schedule
+      });
+      showToast('success', 'Group updated successfully');
+      showEditGroupModal = false;
+      await loadMyGroups();
+      if (selectedGroup) {
+        await loadMembers(selectedGroup.id);
+      }
+    } catch (e: any) {
+      showToast('error', e.message || 'Failed to update group');
+    } finally {
+      isEditingGroup = false;
+    }
+  }
+
+  function closeEditGroupModal() {
+    showEditGroupModal = false;
+    editGroup = { description: '', maxMembers: 20, schedule: '' };
+    editSelectedDays = [];
+    editScheduleTime = '08:00';
+  }
+
   async function handleRemoveMember() {
     if (!selectedGroup || !removeMemberId) return;
 
@@ -112,6 +279,24 @@
     } finally {
       isRemoving = false;
       removeMemberId = null;
+    }
+  }
+
+  async function handleDeleteGroup() {
+    if (!selectedGroup) return;
+
+    isDeletingGroup = true;
+    try {
+      await gymGroupsApi.delete(selectedGroup.id);
+      showToast('success', 'Group deleted successfully');
+      showDeleteGroupModal = false;
+      selectedGroup = null;
+      members = [];
+      await loadMyGroups();
+    } catch (e: any) {
+      showToast('error', e.message || 'Failed to delete group');
+    } finally {
+      isDeletingGroup = false;
     }
   }
 
@@ -141,14 +326,29 @@
         </div>
       {:else if myGroups.length === 0}
         <div class="card-panel p-12 text-center">
-          <p class="text-gray-600">You are not moderating any groups yet</p>
+          <p class="text-gray-600 mb-4">You don't have any groups yet</p>
+          <button 
+            on:click={() => showCreateGroupModal = true}
+            class="btn-primary"
+          >
+            Create Your First Group
+          </button>
         </div>
       {:else}
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <!-- Groups Sidebar -->
           <div class="lg:col-span-1">
             <div class="card-panel p-4">
-              <h2 class="font-semibold text-gray-900 mb-4">My Groups</h2>
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-gray-900">My Groups</h2>
+                <button
+                  on:click={() => showCreateGroupModal = true}
+                  class="btn-sm btn-primary"
+                  title="Create New Group"
+                >
+                  + New
+                </button>
+              </div>
               <div class="space-y-2">
                 {#each myGroups as group}
                   <button
@@ -158,7 +358,6 @@
                   >
                     <div class="font-medium">{group.name}</div>
                     <div class="text-sm text-gray-600">{group.gymName}</div>
-                    <div class="text-xs text-gray-500 mt-1">{group.memberCount} members</div>
                   </button>
                 {/each}
               </div>
@@ -172,14 +371,34 @@
                 <div class="flex items-center justify-between mb-6">
                   <div>
                     <h2 class="text-2xl font-bold text-gray-900">{selectedGroup.name}</h2>
-                    <p class="text-sm text-gray-600">{selectedGroup.memberCount} members</p>
+                    <p class="text-sm text-gray-600">{members.length} members</p>
+                    {#if selectedGroup.description}
+                      <p class="text-sm text-gray-500 mt-1">{selectedGroup.description}</p>
+                    {/if}
+                    {#if selectedGroup.schedule}
+                      <p class="text-xs text-blue-600 mt-1">📅 {selectedGroup.schedule}</p>
+                    {/if}
                   </div>
-                  <button
-                    on:click={openAddModal}
-                    class="btn-primary px-6 py-2 rounded-lg"
-                  >
-                    + Add Member
-                  </button>
+                  <div class="flex gap-2">
+                    <button
+                      on:click={openEditGroupModal}
+                      class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                      ✏️ Edit Group
+                    </button>
+                    <button
+                      on:click={() => showDeleteGroupModal = true}
+                      class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                      🗑️ Delete Group
+                    </button>
+                    <button
+                      on:click={openAddModal}
+                      class="btn-primary px-6 py-2 rounded-lg"
+                    >
+                      + Add Member
+                    </button>
+                  </div>
                 </div>
 
                 {#if loadingMembers}
@@ -286,4 +505,204 @@
     on:confirm={handleRemoveMember}
     on:cancel={() => removeMemberId = null}
   />
+
+  <!-- Create Group Modal -->
+  <Modal bind:isOpen={showCreateGroupModal} title="Create New Group">
+    <form on:submit|preventDefault={handleCreateGroup} class="space-y-4">
+      <div>
+        <label for="groupName" class="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
+        <input
+          id="groupName"
+          type="text"
+          bind:value={newGroup.name}
+          required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          placeholder="e.g., Morning Cardio"
+        />
+      </div>
+
+      <div>
+        <label for="groupDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea
+          id="groupDescription"
+          bind:value={newGroup.description}
+          rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          placeholder="Describe the group's purpose and activities"
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="maxMembers" class="block text-sm font-medium text-gray-700 mb-1">Max Members</label>
+        <input
+          id="maxMembers"
+          type="number"
+          bind:value={newGroup.maxMembers}
+          min="1"
+          max="100"
+          required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Schedule Days</label>
+        <div class="grid grid-cols-2 gap-2">
+          {#each daysOfWeek as day}
+            <button
+              type="button"
+              on:click={() => toggleDay(day.value)}
+              class="px-3 py-2 rounded-lg border transition-colors {selectedDays.includes(day.value) 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}"
+            >
+              {day.label}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <div>
+        <label for="scheduleTime" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+        <input
+          id="scheduleTime"
+          type="time"
+          bind:value={scheduleTime}
+          on:change={updateScheduleString}
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {#if newGroup.schedule}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-sm text-blue-800">
+            <span class="font-medium">Schedule:</span> {newGroup.schedule}
+          </p>
+        </div>
+      {/if}
+    </form>
+
+    <svelte:fragment slot="footer">
+      <button
+        type="button"
+        on:click={closeCreateGroupModal}
+        disabled={isCreatingGroup}
+        class="bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors px-6 py-2 rounded-lg"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        on:click={handleCreateGroup}
+        disabled={isCreatingGroup || !newGroup.name}
+        class="btn-primary px-6 py-2 rounded-lg flex items-center gap-2"
+      >
+        {#if isCreatingGroup}
+          <LoadingSpinner size="small" color="white" />
+        {/if}
+        Create Group
+      </button>
+    </svelte:fragment>
+  </Modal>
+
+  <!-- Edit Group Modal -->
+  <Modal bind:isOpen={showEditGroupModal} title="Edit Group">
+    <form on:submit|preventDefault={handleEditGroup} class="space-y-4">
+      <div>
+        <label for="editGroupDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea
+          id="editGroupDescription"
+          bind:value={editGroup.description}
+          rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          placeholder="Describe the group's purpose and activities"
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="editMaxMembers" class="block text-sm font-medium text-gray-700 mb-1">Max Members</label>
+        <input
+          id="editMaxMembers"
+          type="number"
+          bind:value={editGroup.maxMembers}
+          min="1"
+          max="100"
+          required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Schedule Days</label>
+        <div class="grid grid-cols-2 gap-2">
+          {#each daysOfWeek as day}
+            <button
+              type="button"
+              on:click={() => toggleEditDay(day.value)}
+              class="px-3 py-2 rounded-lg border transition-colors {editSelectedDays.includes(day.value) 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}"
+            >
+              {day.label}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <div>
+        <label for="editScheduleTime" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+        <input
+          id="editScheduleTime"
+          type="time"
+          bind:value={editScheduleTime}
+          on:change={updateEditScheduleString}
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {#if editGroup.schedule}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-sm text-blue-800">
+            <span class="font-medium">Schedule:</span> {editGroup.schedule}
+          </p>
+        </div>
+      {/if}
+    </form>
+
+    <svelte:fragment slot="footer">
+      <button
+        type="button"
+        on:click={closeEditGroupModal}
+        disabled={isEditingGroup}
+        class="bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors px-6 py-2 rounded-lg"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        on:click={handleEditGroup}
+        disabled={isEditingGroup}
+        class="btn-primary px-6 py-2 rounded-lg flex items-center gap-2"
+      >
+        {#if isEditingGroup}
+          <LoadingSpinner size="small" color="white" />
+        {/if}
+        Save Changes
+      </button>
+    </svelte:fragment>
+  </Modal>
 {/if}
+
+<!-- Delete Group Confirmation -->
+<ConfirmDialog
+  show={showDeleteGroupModal}
+  title="Delete Group"
+  message="Are you sure you want to delete '{selectedGroup?.name}'? This action cannot be undone and will remove all members from the group."
+  confirmText="Delete"
+  cancelText="Cancel"
+  onConfirm={handleDeleteGroup}
+  onCancel={() => showDeleteGroupModal = false}
+  isLoading={isDeletingGroup}
+  danger={true}
+/>
+

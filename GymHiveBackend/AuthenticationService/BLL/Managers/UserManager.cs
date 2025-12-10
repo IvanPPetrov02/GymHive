@@ -164,5 +164,29 @@ namespace BLL
         {
             return await _userDao.GetUserByIdAsync(userId);
         }
+
+        public async Task UpdateUserRoleAsync(string uuid, Role role)
+        {
+            var user = await _userDao.GetUserByIdAsync(uuid);
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            user.Role = role;
+            await _userDao.UpdateUserAsync(user);
+        }
+
+        public async Task UpdateUserGymIdAsync(string uuid, int? gymId)
+        {
+            var user = await _userDao.GetUserByIdAsync(uuid);
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            user.GymId = gymId;
+            await _userDao.UpdateUserAsync(user);
+        }
     }
 }

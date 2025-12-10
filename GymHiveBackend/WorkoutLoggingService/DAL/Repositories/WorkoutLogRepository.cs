@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using WorkoutLoggingService.BLL.Entities;
+using WorkoutLoggingService.BLL.RepositoryInterfaces;
 using WorkoutLoggingService.DAL.DbContexts;
-using WorkoutLoggingService.DAL.Entities;
-using WorkoutLoggingService.DAL.RepositoryInterfaces;
 
 namespace WorkoutLoggingService.DAL.Repositories;
 
@@ -14,78 +14,43 @@ public class WorkoutLogRepository : IWorkoutLogRepository
         _context = context;
     }
 
-    public async Task<List<WorkoutLog>> GetUserWorkoutLogsAsync(Guid userId, int skip = 0, int take = 20)
-    {
-        return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId)
-            .OrderByDescending(w => w.CreatedAt)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
-    }
-
     public async Task<WorkoutLog?> GetByIdAsync(int id)
     {
         return await _context.WorkoutLogs.FindAsync(id);
     }
 
-    public async Task<WorkoutLog?> GetActiveCheckInAsync(Guid userId)
+    public async Task<List<WorkoutLog>> GetUserVisitsByDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate)
     {
         return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId && w.CheckOutTime == null)
-            .OrderByDescending(w => w.CheckInTime)
-            .FirstOrDefaultAsync();
+            .Where(w => w.UserId == userId 
+                     && w.VisitDate.Date >= startDate.Date
+                     && w.VisitDate.Date <= endDate.Date)
+            .OrderBy(w => w.VisitDate)
+            .ToListAsync();
     }
 
-    public async Task<WorkoutLog> CreateAsync(WorkoutLog workoutLog)
+    public async Task<WorkoutLog> AddAsync(WorkoutLog workoutLog)
     {
         _context.WorkoutLogs.Add(workoutLog);
         await _context.SaveChangesAsync();
         return workoutLog;
     }
 
-    public async Task<bool> UpdateAsync(WorkoutLog workoutLog)
+    public async Task DeleteAsync(int id)
     {
-        _context.WorkoutLogs.Update(workoutLog);
-        return await _context.SaveChangesAsync() > 0;
+        var workoutLog = await GetByIdAsync(id);
+        if (workoutLog != null)
+        {
+            _context.WorkoutLogs.Remove(workoutLog);
+            await _context.SaveChangesAsync();
+        }
     }
 
-    public async Task<int> GetTotalWorkoutsAsync(Guid userId)
+    public async Task<bool> HasVisitOnDateAsync(Guid userId, int gymId, DateTime date)
     {
         return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId && w.CheckOutTime != null)
-            .CountAsync();
-    }
-
-    public async Task<int> GetTotalMinutesAsync(Guid userId)
-    {
-        return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId && w.Duration != null)
-            .SumAsync(w => w.Duration ?? 0);
-    }
-
-    public async Task<DateTime?> GetLastWorkoutAsync(Guid userId)
-    {
-        return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId && w.CheckOutTime != null)
-            .OrderByDescending(w => w.CheckOutTime)
-            .Select(w => w.CheckOutTime)
-            .FirstOrDefaultAsync();
-    }
-
-    public async Task<int> GetWorkoutsThisWeekAsync(Guid userId)
-    {
-        var startOfWeek = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek);
-        return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId && w.CheckOutTime != null && w.CheckOutTime >= startOfWeek)
-            .CountAsync();
-    }
-
-    public async Task<int> GetWorkoutsThisMonthAsync(Guid userId)
-    {
-        var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        return await _context.WorkoutLogs
-            .Where(w => w.UserId == userId && w.CheckOutTime != null && w.CheckOutTime >= startOfMonth)
-            .CountAsync();
+            .AnyAsync(w => w.UserId == userId 
+                        && w.GymId == gymId 
+                        && w.VisitDate.Date == date.Date);
     }
 }

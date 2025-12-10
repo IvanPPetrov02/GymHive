@@ -1,32 +1,13 @@
 namespace WorkoutLoggingService.BLL.DTOs;
 
-public record WorkoutLogDTO
+public class GymVisitDTO
 {
-    public int Id { get; init; }
-    public Guid UserId { get; init; }
-    public int GymId { get; init; }
-    public DateTime CheckInTime { get; init; }
-    public DateTime? CheckOutTime { get; init; }
-    public int? Duration { get; init; }
-    public DateTime CreatedAt { get; init; }
+    public int Id { get; set; }
+    public int GymId { get; set; }
+    public DateTime VisitDate { get; set; }
 }
 
-public record CheckInRequest
+public class LogGymVisitDTO
 {
-    public int GymId { get; init; }
-}
-
-public record CheckOutRequest
-{
-    public int WorkoutLogId { get; init; }
-}
-
-public record WorkoutStatsDTO
-{
-    public int TotalWorkouts { get; init; }
-    public int TotalMinutes { get; init; }
-    public double AverageDuration { get; init; }
-    public DateTime? LastWorkout { get; init; }
-    public int WorkoutsThisWeek { get; init; }
-    public int WorkoutsThisMonth { get; init; }
+    public int GymId { get; set; }
 }

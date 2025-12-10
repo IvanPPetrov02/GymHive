@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using NotificationsService.DAL.Entities;
+using NotificationsService.BLL.Entities;
 
 namespace NotificationsService.DAL.DbContexts;
 

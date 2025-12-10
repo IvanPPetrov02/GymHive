@@ -16,26 +16,31 @@ export interface Gym {
   memberCount?: number;
 }
 
+export interface ModeratorDTO {
+  firstName: string;
+  lastName: string;
+}
+
 export interface CreateGymDTO {
   name: string;
   address: string;
   description?: string;
-  phoneNumber?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
   email?: string;
-  website?: string;
-  openingTime?: string;
-  closingTime?: string;
+  moderators?: ModeratorDTO[];
 }
 
 export interface UpdateGymDTO {
   name?: string;
   address?: string;
   description?: string;
-  phoneNumber?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
   email?: string;
-  website?: string;
-  openingTime?: string;
-  closingTime?: string;
+  moderators?: ModeratorDTO[];
 }
 
 // Gym API endpoints

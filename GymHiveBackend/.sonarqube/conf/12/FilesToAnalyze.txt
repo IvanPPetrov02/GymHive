@@ -1,0 +1,5 @@
+﻿C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\NotificationsService\BLL\DTOs\NotificationDTO.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\NotificationsService\BLL\Entities\Notification.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\NotificationsService\BLL\ManagerInterfaces\INotificationManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\NotificationsService\BLL\Managers\NotificationManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\NotificationsService\BLL\RepositoryInterfaces\INotificationRepository.cs

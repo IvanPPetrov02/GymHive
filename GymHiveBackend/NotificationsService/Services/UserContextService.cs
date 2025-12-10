@@ -1,34 +1,72 @@
-using System.Security.Claims;
-
 namespace NotificationsService.Services;
 
 public interface IUserContextService
 {
-    Guid GetUserId();
-    string? GetUserRole();
+    Guid GetCurrentUserId();
+    string? GetCurrentUserEmail();
+    string? GetCurrentUserRole();
+    bool IsInRole(string role);
 }
 
 public class UserContextService : IUserContextService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<UserContextService> _logger;
 
-    public UserContextService(IHttpContextAccessor httpContextAccessor)
+    public UserContextService(IHttpContextAccessor httpContextAccessor, ILogger<UserContextService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
-    public Guid GetUserId()
+    public Guid GetCurrentUserId()
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        var userId = GetHeaderValue("X-User-Id");
+        
+        _logger.LogInformation($"[UserContext] X-User-Id header: {userId}");
+        
+        if (string.IsNullOrEmpty(userId))
         {
-            throw new UnauthorizedAccessException("User ID not found in token");
+            _logger.LogError("[UserContext] User ID not found in request headers");
+            throw new UnauthorizedAccessException("User ID not found in request");
         }
-        return userId;
+
+        if (!Guid.TryParse(userId, out var guid))
+        {
+            _logger.LogError($"[UserContext] Invalid user ID format: {userId}");
+            throw new UnauthorizedAccessException("Invalid user ID format");
+        }
+
+        return guid;
     }
 
-    public string? GetUserRole()
+    public string? GetCurrentUserEmail()
     {
-        return _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+        var email = GetHeaderValue("X-User-Email");
+        _logger.LogInformation($"[UserContext] X-User-Email header: {email}");
+        return email;
+    }
+
+    public string? GetCurrentUserRole()
+    {
+        var role = GetHeaderValue("X-User-Role");
+        _logger.LogInformation($"[UserContext] X-User-Role header: {role}");
+        return role;
+    }
+
+    public bool IsInRole(string role)
+    {
+        var userRole = GetCurrentUserRole();
+        return !string.IsNullOrEmpty(userRole) && userRole.Equals(role, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string? GetHeaderValue(string headerName)
+    {
+        var headers = _httpContextAccessor.HttpContext?.Request.Headers;
+        if (headers != null && headers.TryGetValue(headerName, out var value))
+        {
+            return value.ToString();
+        }
+        return null;
     }
 }

@@ -4,8 +4,7 @@ namespace WorkoutLoggingService.BLL.ManagerInterfaces;
 
 public interface IWorkoutLogManager
 {
-    Task<List<WorkoutLogDTO>> GetUserWorkoutLogsAsync(Guid userId, int skip = 0, int take = 20);
-    Task<WorkoutLogDTO> CheckInAsync(Guid userId, int gymId);
-    Task<WorkoutLogDTO> CheckOutAsync(Guid userId, int workoutLogId);
-    Task<WorkoutStatsDTO> GetWorkoutStatsAsync(Guid userId);
+    Task<List<GymVisitDTO>> GetGymVisitsAsync(Guid userId, DateTime startDate, DateTime endDate);
+    Task<GymVisitDTO> LogGymVisitAsync(Guid userId, LogGymVisitDTO dto);
+    Task DeleteGymVisitAsync(Guid userId, int visitId);
 }

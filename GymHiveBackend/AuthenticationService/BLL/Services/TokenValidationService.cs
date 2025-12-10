@@ -88,6 +88,7 @@ public class TokenValidationService : ITokenValidationService
                 UserId = userId,
                 Email = emailClaim,
                 Role = roleClaim,
+                GymId = user.GymId,  // Include gymId from user
                 Exp = expiration
             };
         }

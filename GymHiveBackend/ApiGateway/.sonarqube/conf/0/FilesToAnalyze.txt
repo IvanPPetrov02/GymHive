@@ -1,0 +1,21 @@
+﻿C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Middleware\TokenIntrospectionMiddleware.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Program.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Services\AuthServiceClient.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Services\IAuthServiceClient.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Services\TokenValidationRequestDTO.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Services\TokenValidationResponseDTO.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Tests\AuthServiceClientTests.cs
+C:\Users\vanit\.nuget\packages\microsoft.net.test.sdk\18.0.0\build\net8.0\Microsoft.NET.Test.Sdk.Program.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\obj\Debug\net9.0\ApiGateway.GlobalUsings.g.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\obj\Debug\net9.0\.NETCoreApp,Version=v9.0.AssemblyAttributes.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\obj\Debug\net9.0\ApiGateway.AssemblyInfo.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\obj\Debug\net9.0\ApiGateway.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\vanit\.nuget\packages\microsoft.testplatform.testhost\18.0.0\build\net8.0\x64\testhost.exe
+C:\Users\vanit\.nuget\packages\microsoft.testplatform.testhost\18.0.0\build\net8.0\x64\testhost.dll
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\appsettings.Development.json
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\appsettings.json
+C:\Users\vanit\.nuget\packages\xunit.runner.visualstudio\3.1.5\build\net8.0\xunit.abstractions.dll
+C:\Users\vanit\.nuget\packages\xunit.runner.visualstudio\3.1.5\build\net8.0\xunit.runner.visualstudio.testadapter.dll
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\ApiGateway.http
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Dockerfile
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\ApiGateway\Properties\launchSettings.json
