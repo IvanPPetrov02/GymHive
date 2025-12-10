@@ -1,4 +1,4 @@
-// Version: 1.0.1 - Country-scale load testing ready
+// Version: 1.0.2 - RabbitMQ configuration fix
 using BLL.ManagerInterfaces;
 using BLL;
 using BLL.Services;
