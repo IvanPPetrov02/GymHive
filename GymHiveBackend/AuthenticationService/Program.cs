@@ -129,13 +129,13 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        dbContext.Database.EnsureCreated(); // Ensure database exists first
-        dbContext.Database.Migrate();
+        // Use EnsureCreated for initial setup since migrations are incomplete
+        dbContext.Database.EnsureCreated();
     }
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "An error occurred while creating the database.");
         throw;
     }
 }
