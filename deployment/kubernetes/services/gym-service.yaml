@@ -30,6 +30,16 @@ spec:
           value: "http://+:8080"
         - name: ConnectionStrings__DefaultConnection
           value: "Server=gym-db;Port=3306;Database=GymHiveGyms;User=gymhive_user;Password=GymHive123!;"
+        - name: RabbitMQ__HostName
+          value: "rabbitmq"
+        - name: RabbitMQ__Port
+          value: "5672"
+        - name: RabbitMQ__UserName
+          value: "gymhive"
+        - name: RabbitMQ__Password
+          value: "GymHive123!"
+        - name: RabbitMQ__VirtualHost
+          value: "/"
         - name: AppSettings__Token
           value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
         resources:

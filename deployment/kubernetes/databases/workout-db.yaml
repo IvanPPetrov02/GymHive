@@ -1,0 +1,100 @@
+---
+# PersistentVolumeClaim for Workout DB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workout-db-pvc
+  namespace: gymhive
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Workout Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workout-db
+  namespace: gymhive
+  labels:
+    app: workout-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workout-db
+  template:
+    metadata:
+      labels:
+        app: workout-db
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "RootPassword123!"
+        - name: MYSQL_DATABASE
+          value: "GymHiveWorkoutLogs"
+        - name: MYSQL_USER
+          value: "gymhive_user"
+        - name: MYSQL_PASSWORD
+          value: "GymHive123!"
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+            - -u
+            - root
+            - -pRootPassword123!
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+            - -u
+            - root
+            - -pRootPassword123!
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: workout-db-pvc
+---
+# Workout Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: workout-db
+  namespace: gymhive
+spec:
+  selector:
+    app: workout-db
+  ports:
+  - port: 3306
+    targetPort: 3306
+    name: mysql
+  clusterIP: None  # Headless service

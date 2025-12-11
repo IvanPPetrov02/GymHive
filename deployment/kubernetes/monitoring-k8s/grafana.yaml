@@ -72,14 +72,6 @@ spec:
         volumeMounts:
         - name: datasources
           mountPath: /etc/grafana/provisioning/datasources
-        - name: dashboards-config
-          mountPath: /etc/grafana/provisioning/dashboards
-        - name: dashboard-overview
-          mountPath: /var/lib/grafana/dashboards/overview
-        - name: dashboard-containers
-          mountPath: /var/lib/grafana/dashboards/containers
-        - name: dashboard-kubernetes
-          mountPath: /var/lib/grafana/dashboards/kubernetes
         - name: storage
           mountPath: /var/lib/grafana
         resources:
@@ -105,18 +97,6 @@ spec:
       - name: datasources
         configMap:
           name: grafana-datasources
-      - name: dashboards-config
-        configMap:
-          name: grafana-dashboards-config
-      - name: dashboard-overview
-        configMap:
-          name: grafana-dashboard-overview
-      - name: dashboard-containers
-        configMap:
-          name: grafana-dashboard-containers
-      - name: dashboard-kubernetes
-        configMap:
-          name: grafana-dashboard-kubernetes
       - name: storage
         emptyDir: {}
 

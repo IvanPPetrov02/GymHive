@@ -28,8 +28,20 @@ spec:
           value: "Production"
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
-        - name: ConnectionStrings__DefaultConnection
-          value: "Server=membership-db;Port=3306;Database=GymHiveGyms;User=gymhive_user;Password=GymHive123!;"
+        - name: MongoDB__ConnectionString
+          value: "mongodb://root:RootPassword123!@mongodb:27017"
+        - name: MongoDB__DatabaseName
+          value: "GymHiveMembershipsV2"
+        - name: RabbitMQ__HostName
+          value: "rabbitmq"
+        - name: RabbitMQ__Port
+          value: "5672"
+        - name: RabbitMQ__UserName
+          value: "gymhive"
+        - name: RabbitMQ__Password
+          value: "GymHive123!"
+        - name: RabbitMQ__VirtualHost
+          value: "/"
         - name: AppSettings__Token
           value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
         - name: GymService__BaseUrl

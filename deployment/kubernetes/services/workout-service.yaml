@@ -1,25 +1,25 @@
 ---
-# Authentication Service Deployment
+# Workout Service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: auth-service
+  name: workout-service
   namespace: gymhive
   labels:
-    app: auth-service
+    app: workout-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: auth-service
+      app: workout-service
   template:
     metadata:
       labels:
-        app: auth-service
+        app: workout-service
     spec:
       containers:
-      - name: auth-service
-        image: ivanppetrov/gymhive-auth-service:latest
+      - name: workout-service
+        image: ivanppetrov/gymhive-workout-service:latest
         ports:
         - containerPort: 8080
           name: http
@@ -29,7 +29,7 @@ spec:
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
         - name: ConnectionStrings__DefaultConnection
-          value: "Server=auth-db;Port=3306;Database=GymHive;User=gymhive_user;Password=GymHive123!;"
+          value: "Server=workout-db;Port=3306;Database=GymHiveWorkoutLogs;User=gymhive_user;Password=GymHive123!;"
         - name: RabbitMQ__HostName
           value: "rabbitmq"
         - name: RabbitMQ__Port
@@ -40,8 +40,6 @@ spec:
           value: "GymHive123!"
         - name: RabbitMQ__VirtualHost
           value: "/"
-        - name: AppSettings__Token
-          value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
         resources:
           requests:
             memory: "256Mi"
@@ -62,32 +60,32 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 5
 ---
-# Authentication Service
+# Workout Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: auth-service
+  name: workout-service
   namespace: gymhive
 spec:
   selector:
-    app: auth-service
+    app: workout-service
   ports:
   - port: 8080
     targetPort: 8080
     name: http
   type: ClusterIP
 ---
-# Horizontal Pod Autoscaler for Auth Service
+# Horizontal Pod Autoscaler for Workout Service
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: auth-service-hpa
+  name: workout-service-hpa
   namespace: gymhive
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: auth-service
+    name: workout-service
   minReplicas: 1
   maxReplicas: 10
   metrics:

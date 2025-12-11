@@ -46,17 +46,10 @@ Write-Host "Waiting for databases to be ready (this may take 2-3 minutes)..." -F
 # Wait for databases
 kubectl wait --for=condition=ready pod -l app=auth-db -n gymhive --timeout=300s 2>&1 | Out-Null
 kubectl wait --for=condition=ready pod -l app=gym-db -n gymhive --timeout=300s 2>&1 | Out-Null
-kubectl wait --for=condition=ready pod -l app=membership-db -n gymhive --timeout=300s 2>&1 | Out-Null
-
-Write-Host ""
-Write-Host "Step 3: Deploying databases..." -ForegroundColor Yellow
-kubectl apply -f databases/
-Write-Host "Waiting for databases to be ready (this may take 2-3 minutes)..." -ForegroundColor Yellow
-
-# Wait for databases
-kubectl wait --for=condition=ready pod -l app=auth-db -n gymhive --timeout=300s 2>&1 | Out-Null
-kubectl wait --for=condition=ready pod -l app=gym-db -n gymhive --timeout=300s 2>&1 | Out-Null
-kubectl wait --for=condition=ready pod -l app=membership-db -n gymhive --timeout=300s 2>&1 | Out-Null
+kubectl wait --for=condition=ready pod -l app=notifications-db -n gymhive --timeout=300s 2>&1 | Out-Null
+kubectl wait --for=condition=ready pod -l app=workout-db -n gymhive --timeout=300s 2>&1 | Out-Null
+kubectl wait --for=condition=ready pod -l app=mongodb -n gymhive --timeout=300s 2>&1 | Out-Null
+kubectl wait --for=condition=ready pod -l app=rabbitmq -n gymhive --timeout=300s 2>&1 | Out-Null
 
 Write-Host "Databases are ready" -ForegroundColor Green
 
@@ -69,6 +62,8 @@ Write-Host "Waiting for services to be ready (this may take 2-3 minutes)..." -Fo
 kubectl wait --for=condition=ready pod -l app=auth-service -n gymhive --timeout=300s 2>&1 | Out-Null
 kubectl wait --for=condition=ready pod -l app=gym-service -n gymhive --timeout=300s 2>&1 | Out-Null
 kubectl wait --for=condition=ready pod -l app=membership-service -n gymhive --timeout=300s 2>&1 | Out-Null
+kubectl wait --for=condition=ready pod -l app=notifications-service -n gymhive --timeout=300s 2>&1 | Out-Null
+kubectl wait --for=condition=ready pod -l app=workout-service -n gymhive --timeout=300s 2>&1 | Out-Null
 kubectl wait --for=condition=ready pod -l app=api-gateway -n gymhive --timeout=300s 2>&1 | Out-Null
 kubectl wait --for=condition=ready pod -l app=frontend -n gymhive --timeout=300s 2>&1 | Out-Null
 
