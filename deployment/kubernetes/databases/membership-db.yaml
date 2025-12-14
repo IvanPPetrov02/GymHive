@@ -1,0 +1,94 @@
+---
+# PersistentVolumeClaim for Membership DB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: membership-db-pvc
+  namespace: gymhive
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Membership Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: membership-db
+  namespace: gymhive
+  labels:
+    app: membership-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: membership-db
+  template:
+    metadata:
+      labels:
+        app: membership-db
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_HOST
+          value: "%"
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-mysql-password
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_DATABASE
+          value: "GymHiveGyms"
+        - name: MYSQL_USER
+          value: "gymhive_user"
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-mysql-password
+              key: MYSQL_ROOT_PASSWORD
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: membership-db-pvc
+---
+# Membership Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: membership-db
+  namespace: gymhive
+spec:
+  selector:
+    app: membership-db
+  ports:
+  - port: 3306
+    targetPort: 3306
+    name: mysql
+  clusterIP: None  # Headless service

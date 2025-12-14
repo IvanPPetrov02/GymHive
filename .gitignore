@@ -48,6 +48,15 @@ _ReSharper*/
 ############################
 *.log
 npm-debug.log*
+
+# Load test results (can be large)
+*-results.json
+country-scale-*.json
+tools/k6/
+# Keep latest load test results but ignore timestamped ones
+load-tests/results/*
+!load-tests/results/.gitkeep
+!load-tests/results/*-latest.json
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*

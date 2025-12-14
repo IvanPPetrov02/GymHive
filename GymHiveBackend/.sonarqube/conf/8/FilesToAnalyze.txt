@@ -1,0 +1,6 @@
+﻿C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\MembershipService\BLL\DTOs\MembershipDTO.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\MembershipService\BLL\Entities\Membership.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\MembershipService\BLL\ManagerInterfaces\IMembershipManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\MembershipService\BLL\Managers\MembershipManager.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\MembershipService\BLL\RepositoryInterfaces\IGymServiceClient.cs
+C:\Users\vanit\Desktop\CSS - Semester 6\individual project\GymHive\GymHiveBackend\MembershipService\BLL\RepositoryInterfaces\IMembershipRepository.cs

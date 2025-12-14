@@ -1,0 +1,127 @@
+---
+# Notifications Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifications-service
+  namespace: gymhive
+  labels:
+    app: notifications-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifications-service
+  template:
+    metadata:
+      labels:
+        app: notifications-service
+    spec:
+      containers:
+      - name: notifications-service
+        image: ivanppetrov/gymhive-notifications-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_ENVIRONMENT
+        - name: ASPNETCORE_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_URLS
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-notifications-connection
+              key: CONNECTION_STRING
+        - name: RabbitMQ__HostName
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_HOST
+        - name: RabbitMQ__Port
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_PORT
+        - name: RabbitMQ__UserName
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_USERNAME
+        - name: RabbitMQ__Password
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-rabbitmq-password
+              key: RABBITMQ_PASSWORD
+        - name: RabbitMQ__VirtualHost
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_VHOST
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+# Notifications Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: notifications-service
+  namespace: gymhive
+spec:
+  selector:
+    app: notifications-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Horizontal Pod Autoscaler for Notifications Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notifications-service-hpa
+  namespace: gymhive
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notifications-service
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70

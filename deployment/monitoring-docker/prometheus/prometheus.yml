@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'api-gateway'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/file_sd/api-gateway.yml'
+    metrics_path: '/metrics'
+
+  - job_name: 'auth-service'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/file_sd/auth-service.yml'
+    metrics_path: '/metrics'
+
+  - job_name: 'gym-service'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/file_sd/gym-service.yml'
+    metrics_path: '/metrics'
+
+  - job_name: 'membership-service'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/file_sd/membership-service.yml'
+    metrics_path: '/metrics'
+
+  - job_name: 'cadvisor'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/file_sd/cadvisor.yml'
+    metrics_path: '/metrics'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Add rule_files: [] or other config sections below if you later want alerting rules
+rule_files: []
+
+# End of prometheus.yml

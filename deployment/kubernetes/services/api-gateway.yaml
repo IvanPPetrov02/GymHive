@@ -1,0 +1,132 @@
+---
+# API Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: gymhive
+  labels:
+    app: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: ivanppetrov/gymhive-api-gateway:latest
+        imagePullPolicy: Always  # Always pull latest image from Docker Hub
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_ENVIRONMENT
+        - name: ASPNETCORE_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_URLS
+        - name: AuthService__BaseUrl
+          value: "http://auth-service:8080"
+        - name: JWT__Secret
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
+        - name: JWT__Issuer
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_ISSUER
+        - name: JWT__Audience
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_AUDIENCE
+        - name: AppSettings__Token
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
+        - name: ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address
+          value: "http://auth-service:8080"
+        - name: ReverseProxy__Clusters__gym-cluster__Destinations__destination1__Address
+          value: "http://gym-service:8080"
+        - name: ReverseProxy__Clusters__membership-cluster__Destinations__destination1__Address
+          value: "http://membership-service:8080"
+        - name: ReverseProxy__Clusters__notifications-cluster__Destinations__destination1__Address
+          value: "http://notifications-service:8080"
+        - name: ReverseProxy__Clusters__workouts-cluster__Destinations__destination1__Address
+          value: "http://workout-service:8080"
+        - name: CorsOrigins
+          value: "*"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+# API Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: gymhive
+spec:
+  selector:
+    app: api-gateway
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+  type: LoadBalancer
+---
+# Horizontal Pod Autoscaler for API Gateway
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: gymhive
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
