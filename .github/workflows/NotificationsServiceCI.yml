@@ -1,4 +1,4 @@
-name: Notifications Service CI
+﻿name: Notifications Service CI
 
 on:
   push:
@@ -100,6 +100,8 @@ jobs:
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT }}
+          export_default_credentials: true
+          export_default_credentials: true
 
       - name: Set IMAGE
         if: ${{ github.event_name == 'push' }}
