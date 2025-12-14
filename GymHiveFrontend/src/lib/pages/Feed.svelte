@@ -63,7 +63,7 @@
         time
       });
       
-      console.log('[QR Code] Generated data:', qrData);
+      // QR code generated (removed noisy debug log)
       qrCodeDataUrl = await QRCode.toDataURL(qrData, { width: 300, margin: 2 });
     } catch (err) {
       console.error('Failed to generate QR code:', err);
