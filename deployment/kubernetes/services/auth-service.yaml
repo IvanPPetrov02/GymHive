@@ -25,23 +25,75 @@ spec:
           name: http
         env:
         - name: ASPNETCORE_ENVIRONMENT
-          value: "Production"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_ENVIRONMENT
         - name: ASPNETCORE_URLS
-          value: "http://+:8080"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_URLS
         - name: ConnectionStrings__DefaultConnection
-          value: "Server=auth-db;Port=3306;Database=GymHive;User=gymhive_user;Password=GymHive123!;"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-auth-connection
+              key: CONNECTION_STRING
+        - name: JWT__Secret
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
+        - name: JWT__Issuer
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_ISSUER
+        - name: JWT__Audience
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_AUDIENCE
+        - name: JWT__ExpirationHours
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_EXPIRATION_HOURS
+        - name: PASSWORD_PEPPER
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-password-pepper
+              key: PASSWORD_PEPPER
         - name: RabbitMQ__HostName
-          value: "rabbitmq"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_HOST
         - name: RabbitMQ__Port
-          value: "5672"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_PORT
         - name: RabbitMQ__UserName
-          value: "gymhive"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_USERNAME
         - name: RabbitMQ__Password
-          value: "GymHive123!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-rabbitmq-password
+              key: RABBITMQ_PASSWORD
         - name: RabbitMQ__VirtualHost
-          value: "/"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_VHOST
         - name: AppSettings__Token
-          value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
         resources:
           requests:
             memory: "256Mi"

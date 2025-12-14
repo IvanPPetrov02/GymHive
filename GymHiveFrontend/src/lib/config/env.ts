@@ -35,8 +35,12 @@ function normalizeUrl(v: string): string {
 
 const servicesConfig: ServicesConfig = {
   // Always use API Gateway - direct service URLs should not be used from frontend
-  // Reads from VITE_API_GATEWAY_URL env var, falls back to localhost:5000 for local dev
-  apiGateway: normalizeUrl(import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:5000'),
+    // Runtime detection: prefer window.GYMHIVE_CONFIG (set by Kubernetes), fallback to build-time env, then localhost
+  apiGateway: normalizeUrl(
+    (typeof window !== 'undefined' && (window as any).GYMHIVE_CONFIG?.API_GATEWAY_URL !== '__API_GATEWAY_URL__') 
+      ? (window as any).GYMHIVE_CONFIG?.API_GATEWAY_URL 
+      : import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:5000'
+  ),
   gymsService: '', // Not used - all requests go through gateway
   identityService: '', // Not used - all requests go through gateway
   mediaService: '',

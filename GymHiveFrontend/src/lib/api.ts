@@ -6,7 +6,7 @@ const services = getServicesConfig();
 const API_BASE = services.apiGateway || '';
 
 if (!API_BASE) {
-  console.warn('[API] No API base URL configured. Set VITE_API_GATEWAY_URL or VITE_API_URL.');
+  // Production: silently fail - don't expose configuration in console
 }
 
 export function getApiBase() { return API_BASE; }

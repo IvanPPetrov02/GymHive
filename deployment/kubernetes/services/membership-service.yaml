@@ -29,21 +29,45 @@ spec:
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
         - name: MongoDB__ConnectionString
-          value: "mongodb://root:RootPassword123!@mongodb:27017"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-mongodb-connection
+              key: MONGODB_CONNECTION_STRING
         - name: MongoDB__DatabaseName
-          value: "GymHiveMembershipsV2"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: MONGODB_DATABASE_NAME
         - name: RabbitMQ__HostName
-          value: "rabbitmq"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_HOST
         - name: RabbitMQ__Port
-          value: "5672"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_PORT
         - name: RabbitMQ__UserName
-          value: "gymhive"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_USERNAME
         - name: RabbitMQ__Password
-          value: "GymHive123!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-rabbitmq-password
+              key: RABBITMQ_PASSWORD
         - name: RabbitMQ__VirtualHost
-          value: "/"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_VHOST
         - name: AppSettings__Token
-          value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
         - name: GymService__BaseUrl
           value: "http://gym-service:8080"
         resources:

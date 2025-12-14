@@ -93,3 +93,28 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Set IMAGE
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "IMAGE=${{ secrets.DOCKER_USERNAME }}/gymhive-gym-service:${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER }}
+          location: ${{ secrets.GKE_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Deploy to GKE
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          K8S_NAMESPACE: gymhive
+        run: |
+          kubectl -n "$K8S_NAMESPACE" set image deployment/gym-service *="$IMAGE" --record
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/gym-service --timeout=120s

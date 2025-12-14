@@ -25,21 +25,45 @@ spec:
           name: http
         env:
         - name: ASPNETCORE_ENVIRONMENT
-          value: "Production"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_ENVIRONMENT
         - name: ASPNETCORE_URLS
-          value: "http://+:8080"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_URLS
         - name: ConnectionStrings__DefaultConnection
-          value: "Server=notifications-db;Port=3306;Database=GymHiveNotifications;User=gymhive_user;Password=GymHive123!;"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-notifications-connection
+              key: CONNECTION_STRING
         - name: RabbitMQ__HostName
-          value: "rabbitmq"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_HOST
         - name: RabbitMQ__Port
-          value: "5672"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_PORT
         - name: RabbitMQ__UserName
-          value: "gymhive"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_USERNAME
         - name: RabbitMQ__Password
-          value: "GymHive123!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-rabbitmq-password
+              key: RABBITMQ_PASSWORD
         - name: RabbitMQ__VirtualHost
-          value: "/"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: RABBITMQ_VHOST
         resources:
           requests:
             memory: "256Mi"

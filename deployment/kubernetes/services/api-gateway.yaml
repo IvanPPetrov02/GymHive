@@ -26,11 +26,37 @@ spec:
           name: http
         env:
         - name: ASPNETCORE_ENVIRONMENT
-          value: "Production"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_ENVIRONMENT
         - name: ASPNETCORE_URLS
-          value: "http://+:8080"
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: ASPNETCORE_URLS
+        - name: AuthService__BaseUrl
+          value: "http://auth-service:8080"
+        - name: JWT__Secret
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
+        - name: JWT__Issuer
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_ISSUER
+        - name: JWT__Audience
+          valueFrom:
+            configMapKeyRef:
+              name: gymhive-config
+              key: JWT_AUDIENCE
         - name: AppSettings__Token
-          value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-jwt-secret
+              key: JWT_SECRET
         - name: ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address
           value: "http://auth-service:8080"
         - name: ReverseProxy__Clusters__gym-cluster__Destinations__destination1__Address
@@ -41,10 +67,8 @@ spec:
           value: "http://notifications-service:8080"
         - name: ReverseProxy__Clusters__workouts-cluster__Destinations__destination1__Address
           value: "http://workout-service:8080"
-        - name: JWT__Secret
-          value: "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"
         - name: CorsOrigins
-          value: "*"  # Allow all origins for development. For production, use specific origins
+          value: "*"
         resources:
           requests:
             memory: "256Mi"
@@ -77,9 +101,8 @@ spec:
   ports:
   - port: 80
     targetPort: 8080
-    nodePort: 30500      # Maps to localhost:5000 (30000 + 500 = 30500, but we'll use port-forward or ingress for :5000)
     name: http
-  type: NodePort         # Use NodePort for direct access
+  type: LoadBalancer
 ---
 # Horizontal Pod Autoscaler for API Gateway
 apiVersion: autoscaling/v2

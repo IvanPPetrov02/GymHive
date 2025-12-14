@@ -34,14 +34,22 @@ spec:
       - name: mysql
         image: mysql:8.0
         env:
+        - name: MYSQL_ROOT_HOST
+          value: "%"
         - name: MYSQL_ROOT_PASSWORD
-          value: "RootPassword123!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-mysql-password
+              key: MYSQL_ROOT_PASSWORD
         - name: MYSQL_DATABASE
           value: "GymHiveGyms"
         - name: MYSQL_USER
           value: "gymhive_user"
         - name: MYSQL_PASSWORD
-          value: "GymHive123!"
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-mysql-password
+              key: MYSQL_ROOT_PASSWORD
         ports:
         - containerPort: 3306
           name: mysql
@@ -56,27 +64,13 @@ spec:
             memory: "1Gi"
             cpu: "500m"
         livenessProbe:
-          exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
-            - -u
-            - root
-            - -pRootPassword123!
+          tcpSocket:
+            port: 3306
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
-          exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
-            - -u
-            - root
-            - -pRootPassword123!
+          tcpSocket:
+            port: 3306
           initialDelaySeconds: 10
           periodSeconds: 5
       volumes:
