@@ -1,4 +1,5 @@
 // Version: 1.0.1 - Country-scale load testing ready
+// ci: trivial code comment to trigger pipeline
 using ApiGateway.Services;
 using ApiGateway.Middleware;
 using Prometheus;

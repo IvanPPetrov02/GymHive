@@ -1,4 +1,5 @@
 // Version: 1.0.2 - RabbitMQ configuration fix
+// ci: trivial code comment to trigger pipeline
 using MembershipService.BLL.ManagerInterfaces;
 using MembershipService.BLL.Managers;
 using MembershipService.BLL.RepositoryInterfaces;

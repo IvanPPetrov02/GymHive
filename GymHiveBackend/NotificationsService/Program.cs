@@ -1,3 +1,4 @@
+// ci: trivial code comment to trigger pipeline
 using NotificationsService.BLL.ManagerInterfaces;
 using NotificationsService.BLL.Managers;
 using NotificationsService.BLL.RepositoryInterfaces;

@@ -1,4 +1,5 @@
 // Version: 1.0.2 - RabbitMQ configuration fix
+// ci: trivial code comment to trigger pipeline
 using GymService.BLL.ManagerInterfaces;
 using GymService.BLL.Managers;
 using GymService.BLL.RepositoryInterfaces;
