@@ -1,4 +1,5 @@
-﻿name: Notifications Service CI
+﻿# ci: trivial pipeline bump comment
+name: Notifications Service CI
 
 on:
   push:
@@ -94,28 +95,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
+          cache-to: type=gha,mode=max
       - name: Set IMAGE
         if: ${{ github.event_name == 'push' }}
         run: |
           echo "IMAGE=${{ secrets.DOCKER_USERNAME }}/gymhive-notifications-service:${{ github.sha }}" >> $GITHUB_ENV
-
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: ${{ secrets.GKE_CLUSTER }}
-          location: ${{ secrets.GKE_ZONE }}
-          project_id: ${{ secrets.GCP_PROJECT }}
-
-      - name: Deploy to GKE
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        env:
-          K8S_NAMESPACE: gymhive
-        run: |
-          kubectl -n "$K8S_NAMESPACE" set image deployment/notifications-service *="$IMAGE" --record
-          kubectl -n "$K8S_NAMESPACE" rollout status deployment/notifications-service --timeout=120s
 
