@@ -90,7 +90,7 @@ jobs:
           context: ./GymHiveBackend
           file: ./GymHiveBackend/MembershipService/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }},${{ secrets.DOCKER_USERNAME }}/gymhive-membership-service:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
