@@ -1,3 +1,4 @@
+// ci: trivial code comment to trigger pipeline
 using WorkoutLoggingService.BLL.ManagerInterfaces;
 using WorkoutLoggingService.BLL.Managers;
 using WorkoutLoggingService.BLL.RepositoryInterfaces;

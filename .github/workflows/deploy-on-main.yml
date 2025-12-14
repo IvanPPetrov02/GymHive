@@ -1,0 +1,80 @@
+name: CD - Deploy on main
+
+on:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: cd-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy changed services to GKE
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER }}
+          location: ${{ secrets.GKE_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Determine changed services
+        id: changes
+        run: |
+          set -e
+          echo "Calculating changed files between ${{ github.event.before }} and ${{ github.sha }}"
+          # Ensure we have history to diff against
+          git fetch --no-tags --prune --unshallow || true
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            git diff --name-only $(git rev-list --max-parents=0 HEAD) ${{ github.sha }} > changed.txt || true
+          else
+            git diff --name-only ${{ github.event.before }} ${{ github.sha }} > changed.txt || true
+          fi
+          cat changed.txt || true
+
+          SERVICES=""
+          if grep -qE '^GymHiveFrontend/' changed.txt; then SERVICES="$SERVICES frontend"; fi
+          if grep -qE '^GymHiveBackend/GymService/' changed.txt; then SERVICES="$SERVICES gym-service"; fi
+          if grep -qE '^GymHiveBackend/ApiGateway/' changed.txt; then SERVICES="$SERVICES api-gateway"; fi
+          if grep -qE '^GymHiveBackend/MembershipService/' changed.txt; then SERVICES="$SERVICES membership-service"; fi
+          if grep -qE '^GymHiveBackend/NotificationsService/' changed.txt; then SERVICES="$SERVICES notifications-service"; fi
+          if grep -qE '^GymHiveBackend/AuthenticationService/' changed.txt; then SERVICES="$SERVICES authentication-service"; fi
+          if grep -qE '^GymHiveBackend/WorkoutLoggingService/' changed.txt; then SERVICES="$SERVICES workout-service"; fi
+
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Deploy changed services
+        if: steps.changes.outputs.services != ''
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -e
+          echo "Services to deploy: '${{ steps.changes.outputs.services }}'"
+          IFS=' ' read -r -a arr <<< "${{ steps.changes.outputs.services }}"
+          for svc in "${arr[@]}"; do
+            svc_trimmed=$(echo "$svc" | xargs)
+            if [ -z "$svc_trimmed" ]; then continue; fi
+            # Construct image name by convention: <docker_user>/gymhive-<service>:<sha>
+            IMAGE="$DOCKER_USER/gymhive-$svc_trimmed:$GITHUB_SHA"
+            echo "Updating deployment '$svc_trimmed' image to $IMAGE"
+            # Try wildcard container update, fallback to explicit container name
+            kubectl -n gymhive set image deployment/$svc_trimmed *="$IMAGE" --record || kubectl -n gymhive set image deployment/$svc_trimmed $svc_trimmed="$IMAGE" --record
+            kubectl -n gymhive rollout status deployment/$svc_trimmed --timeout=180s || echo "Rollout check failed for $svc_trimmed"
+          done
+
+      - name: No changes detected (noop)
+        if: steps.changes.outputs.services == ''
+        run: echo "No services changed in this push. Nothing to deploy."
