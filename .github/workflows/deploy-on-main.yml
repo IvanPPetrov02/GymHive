@@ -18,14 +18,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate required secrets
+      - name: Validate authentication method
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: required secret GCP_SA_KEY is not set in this workflow context.\nEnsure this run is on the protected 'main' branch (not a fork) and that the secret is configured for the repository/org." 1>&2
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ] && [ -z "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: neither GCP_SA_KEY nor WORKLOAD_IDENTITY_PROVIDER is configured.\nSet a service account key (GCP_SA_KEY) or configure Workload Identity (WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT)." 1>&2
             exit 1
           fi
 
       - name: Authenticate to GCP
+        if: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER != '' }}
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT || 'github-actions-deployer@gymhive-481310.iam.gserviceaccount.com' }}
+
+      - name: Authenticate to GCP (service account key fallback)
+        if: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER == '' }}
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
