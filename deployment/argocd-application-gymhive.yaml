@@ -13,6 +13,7 @@ spec:
       recurse: true
       exclude:
       - gke/**
+      - monitoring-k8s/**
   destination:
     server: https://kubernetes.default.svc
     namespace: ""
