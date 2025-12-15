@@ -18,7 +18,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "ERROR: required secret GCP_SA_KEY is not set in this workflow context.\nEnsure this run is on the protected 'main' branch (not a fork) and that the secret is configured for the repository/org." 1>&2
+            exit 1
+          fi
+
       - name: Authenticate to GCP
+        if: ${{ secrets.GCP_SA_KEY != '' }}
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
