@@ -133,7 +133,14 @@ echo "Preparing and applying Kubernetes Jobs to create DB users (auth & notifica
 AUTH_JOB_NAME=create-auth-db-user
 NOTIF_JOB_NAME=create-notifications-db-user
 
-cat <<EOF | kubectl -n "$NAMESPACE" apply -f -
+# Ensure the gymhive-mysql-password secret exists and has the expected key
+if ! kubectl -n "$NAMESPACE" get secret gymhive-mysql-password >/dev/null 2>&1; then
+  echo "Required secret gymhive-mysql-password not found in namespace $NAMESPACE" >&2
+  echo "Ensure ExternalSecrets created it or create a GCP Secret Manager secret named mysql-root-password with the root password and grant access." >&2
+  exit 1
+fi
+
+cat <<'EOF' | kubectl -n "$NAMESPACE" apply -f -
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -150,7 +157,7 @@ spec:
             - sh
             - -c
             - |
-              mysql -h gym-db.gymhive.svc.cluster.local -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE USER IF NOT EXISTS '${AUTH_UID}'@'%' IDENTIFIED BY '${AUTH_PWD}'; GRANT ALL PRIVILEGES ON ${AUTH_DB}.* TO '${AUTH_UID}'@'%'; FLUSH PRIVILEGES;"
+              mysql -h gym-db.gymhive.svc.cluster.local -u root -p"\$MYSQL_ROOT_PASSWORD" -e "CREATE USER IF NOT EXISTS '${AUTH_UID}'@'%' IDENTIFIED BY '${AUTH_PWD}'; GRANT ALL PRIVILEGES ON ${AUTH_DB}.* TO '${AUTH_UID}'@'%'; FLUSH PRIVILEGES;"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -176,7 +183,7 @@ spec:
             - sh
             - -c
             - |
-              mysql -h notifications-db.gymhive.svc.cluster.local -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE USER IF NOT EXISTS '${NOTIF_UID}'@'%' IDENTIFIED BY '${NOTIF_PWD}'; GRANT ALL PRIVILEGES ON ${NOTIF_DB}.* TO '${NOTIF_UID}'@'%'; FLUSH PRIVILEGES;"
+              mysql -h notifications-db.gymhive.svc.cluster.local -u root -p"\$MYSQL_ROOT_PASSWORD" -e "CREATE USER IF NOT EXISTS '${NOTIF_UID}'@'%' IDENTIFIED BY '${NOTIF_PWD}'; GRANT ALL PRIVILEGES ON ${NOTIF_DB}.* TO '${NOTIF_UID}'@'%'; FLUSH PRIVILEGES;"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
