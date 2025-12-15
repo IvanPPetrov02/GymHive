@@ -9,9 +9,13 @@ spec:
     repoURL: "https://github.com/IvanPPetrov02/GymHive.git"
     targetRevision: HEAD
     path: deployment/kubernetes
+    directory:
+      recurse: true
+      exclude:
+      - gke/**
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: ""
   syncPolicy:
     automated:
       prune: true
