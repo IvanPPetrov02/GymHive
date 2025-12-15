@@ -140,7 +140,7 @@ if ! kubectl -n "$NAMESPACE" get secret gymhive-mysql-password >/dev/null 2>&1; 
   exit 1
 fi
 
-cat <<'EOF' | kubectl -n "$NAMESPACE" apply -f -
+cat <<EOF | kubectl -n "$NAMESPACE" apply -f -
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -166,6 +166,7 @@ spec:
                   key: MYSQL_ROOT_PASSWORD
       serviceAccountName: default
 
+---
 ---
 apiVersion: batch/v1
 kind: Job
