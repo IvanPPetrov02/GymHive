@@ -6,6 +6,6 @@ metadata:
 data:
   config.js: |
     window.GYMHIVE_CONFIG = {
-      API_GATEWAY_URL: 'http://130.211.79.179',
+      API_GATEWAY_URL: 'http://34.38.99.58',
       ENVIRONMENT: 'production'
     };
