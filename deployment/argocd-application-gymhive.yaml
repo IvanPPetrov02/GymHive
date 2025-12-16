@@ -14,6 +14,7 @@ spec:
       exclude:
       - gke/**
       - monitoring-k8s/**
+      - "**/monitoring-k8s/**"
   destination:
     server: https://kubernetes.default.svc
     namespace: ""
