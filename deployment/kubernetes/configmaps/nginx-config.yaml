@@ -11,20 +11,18 @@ data:
         root /usr/share/nginx/html;
         index index.html;
 
-        # Gzip compression
         gzip on;
         gzip_vary on;
         gzip_min_length 1024;
         gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
 
-        # Security headers
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
 
-        # Proxy API requests to API Gateway (internal K8s DNS - stable)
+        # Keep the /api/... prefix when forwarding
         location /api/ {
-            proxy_pass http://api-gateway.gymhive.svc.cluster.local/;
+            proxy_pass http://api-gateway.gymhive.svc.cluster.local;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -33,30 +31,25 @@ data:
             proxy_set_header Connection "";
         }
 
-        # SPA routing - serve index.html for all other routes
         location / {
             try_files $uri $uri/ /index.html;
         }
 
-        # Don't cache config.js (Runtime Config)
         location = /config.js {
             add_header Cache-Control "no-cache, no-store, must-revalidate";
             expires 0;
         }
 
-        # Cache static assets
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 1y;
             add_header Cache-Control "public, immutable";
         }
 
-        # Don't cache index.html
         location = /index.html {
             add_header Cache-Control "no-cache, no-store, must-revalidate";
             expires 0;
         }
 
-        # Health check endpoint
         location /health {
             access_log off;
             return 200 "healthy\n";
