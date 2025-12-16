@@ -22,9 +22,9 @@ data:
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
 
-        # Proxy API requests to API Gateway
+        # Proxy API requests to API Gateway (internal K8s DNS - stable)
         location /api/ {
-            proxy_pass http://130.211.79.179;
+            proxy_pass http://api-gateway.gymhive.svc.cluster.local/;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;

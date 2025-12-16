@@ -6,6 +6,8 @@ metadata:
 data:
   config.js: |
     window.GYMHIVE_CONFIG = {
-      API_GATEWAY_URL: 'http://34.38.99.58',
+      // Use the same host the frontend is loaded from:
+      // e.g. http://35.195.254.13
+      API_GATEWAY_URL: window.location.origin,
       ENVIRONMENT: 'production'
     };
