@@ -1,5 +1,4 @@
 ---
-# Gym Service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,72 +17,80 @@ spec:
         app: gym-service
     spec:
       containers:
-      - name: gym-service
-        image: ivanppetrov/gymhive-gym-service:latest
-        ports:
-        - containerPort: 8080
-          name: http
-        env:
-        - name: ASPNETCORE_ENVIRONMENT
-          value: "Production"
-        - name: ASPNETCORE_URLS
-          value: "http://+:8080"
-        - name: ConnectionStrings__DefaultConnection
-          valueFrom:
-            secretKeyRef:
-              name: gymhive-gym-connection
-              key: CONNECTION_STRING
-        - name: RabbitMQ__HostName
-          valueFrom:
-            configMapKeyRef:
-              name: gymhive-config
-              key: RABBITMQ_HOST
-        - name: RabbitMQ__Port
-          valueFrom:
-            configMapKeyRef:
-              name: gymhive-config
-              key: RABBITMQ_PORT
-        - name: RabbitMQ__UserName
-          valueFrom:
-            configMapKeyRef:
-              name: gymhive-config
-              key: RABBITMQ_USERNAME
-        - name: RabbitMQ__Password
-          valueFrom:
-            secretKeyRef:
-              name: gymhive-rabbitmq-password
-              key: RABBITMQ_PASSWORD
-        - name: RabbitMQ__VirtualHost
-          valueFrom:
-            configMapKeyRef:
-              name: gymhive-config
-              key: RABBITMQ_VHOST
-        - name: AppSettings__Token
-          valueFrom:
-            secretKeyRef:
-              name: gymhive-jwt-secret
-              key: JWT_SECRET
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 5
+        - name: gym-service
+          image: ivanppetrov/gymhive-gym-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+
+            # IMPORTANT: valueFrom ONLY (no `value:` on this entry)
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: gymhive-gym-connection
+                  key: CONNECTION_STRING
+
+            - name: RabbitMQ__HostName
+              valueFrom:
+                configMapKeyRef:
+                  name: gymhive-config
+                  key: RABBITMQ_HOST
+            - name: RabbitMQ__Port
+              valueFrom:
+                configMapKeyRef:
+                  name: gymhive-config
+                  key: RABBITMQ_PORT
+            - name: RabbitMQ__UserName
+              valueFrom:
+                configMapKeyRef:
+                  name: gymhive-config
+                  key: RABBITMQ_USERNAME
+            - name: RabbitMQ__Password
+              valueFrom:
+                secretKeyRef:
+                  name: gymhive-rabbitmq-password
+                  key: RABBITMQ_PASSWORD
+            - name: RabbitMQ__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: gymhive-config
+                  key: RABBITMQ_VHOST
+
+            - name: AppSettings__Token
+              valueFrom:
+                secretKeyRef:
+                  name: gymhive-jwt-secret
+                  key: JWT_SECRET
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
 ---
-# Gym Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -93,12 +100,12 @@ spec:
   selector:
     app: gym-service
   ports:
-  - port: 8080
-    targetPort: 8080
-    name: http
+    - port: 8080
+      targetPort: 8080
+      name: http
   type: ClusterIP
+
 ---
-# Horizontal Pod Autoscaler for Gym Service
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -112,15 +119,15 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
