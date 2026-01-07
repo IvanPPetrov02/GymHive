@@ -158,6 +158,8 @@ app.Use(async (context, next) =>
         path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/api/authentication/register", StringComparison.OrdinalIgnoreCase) ||
+        path.Equals("/api/health", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith("/health", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
         path == "/")
@@ -220,6 +222,22 @@ app.MapReverseProxy();
 app.MapMetrics();
 
 // Health check endpoint
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    status = "healthy",
+    timestamp = DateTime.UtcNow,
+    gateway = "GymHive API Gateway",
+    version = "1.0.0",
+    services = new
+    {
+        authService = new { url = "http://localhost:5010", status = "check /api/auth/health" },
+        gymService = new { url = "http://localhost:5001", status = "check /api/gyms/health" },
+        membershipService = new { url = "http://localhost:5002", status = "check /api/memberships/health" },
+        notificationsService = new { url = "http://localhost:5003", status = "check /api/notifications/health" },
+        workoutsService = new { url = "http://localhost:5004", status = "check /api/workouts/health" }
+    }
+})).ExcludeFromDescription();
+
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy",
