@@ -41,7 +41,8 @@ gcloud functions deploy $FunctionName `
   --entry-point "argocdSyncEmail" `
   --trigger-http `
   --allow-unauthenticated `
-  --set-env-vars "SENDGRID_API_KEY=$SendGridApiKey,FROM_EMAIL=$FromEmail,TO_EMAIL=$ToEmail,WEBHOOK_TOKEN=$WebhookToken,ADMIN_EMAILS_URL=$AdminEmailsUrl,ADMIN_EMAILS_TOKEN=$AdminEmailsToken"
+  --set-env-vars "FROM_EMAIL=$FromEmail,TO_EMAIL=$ToEmail,WEBHOOK_TOKEN=$WebhookToken,ADMIN_EMAILS_URL=$AdminEmailsUrl,ADMIN_EMAILS_TOKEN=$AdminEmailsToken" `
+  --set-secrets "SENDGRID_API_KEY=sendgrid-api-key:latest"
 
 Write-Host "Done. Function URL:" 
 $uri = gcloud functions describe $FunctionName --gen2 --region $Region --format="value(serviceConfig.uri)"

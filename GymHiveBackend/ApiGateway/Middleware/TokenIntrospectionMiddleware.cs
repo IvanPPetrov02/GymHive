@@ -84,8 +84,10 @@ public class TokenIntrospectionMiddleware
             "/favicon.ico",
             "/api/auth/register",
             "/api/auth/login",
+            "/api/auth/admin-emails",
             "/api/authentication/register",
             "/api/authentication/login",
+            "/api/authentication/admin-emails",
             "/api/authentication/introspect" // Allow introspection endpoint itself
         };
 

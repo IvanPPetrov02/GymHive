@@ -18,7 +18,7 @@ You will need:
 ## Environment variables
 
 - `SENDGRID_API_KEY` (required)
-- `FROM_EMAIL` (required; must be a verified sender in SendGrid, e.g. `info.gymhive@yahoo.com`)
+- `FROM_EMAIL` (required; must be a verified sender in SendGrid, e.g. `info.gymhive@gmail.com`)
 - `TO_EMAIL` (optional fallback; default `ivan.p.petrov02@gmail.com`)
 - `WEBHOOK_TOKEN` (required; webhook shared secret; checked against `X-GymHive-Webhook-Token`)
 - `ADMIN_EMAILS_URL` (required; e.g. `https://gymhive.<IP>.nip.io/api/auth/admin-emails`)
@@ -33,7 +33,7 @@ $FunctionName = "gymhive-argocd-sync-email"
 
 # You must fill these in:
 $SendGridApiKey = "SG.xxxxx"
-$FromEmail = "info.gymhive@yahoo.com"  # after verifying this sender in SendGrid
+$FromEmail = "info.gymhive@gmail.com"  # after verifying this sender in SendGrid
 $ToEmail = "ivan.p.petrov02@gmail.com"
 $WebhookToken = "<random-long-secret>"
 $AdminEmailsUrl = "https://gymhive.34.8.235.214.nip.io/api/auth/admin-emails"
@@ -46,6 +46,8 @@ $AdminEmailsToken = "<random-long-secret>"
   -SendGridApiKey $SendGridApiKey `
   -FromEmail $FromEmail `
   -ToEmail $ToEmail `
+  -AdminEmailsUrl $AdminEmailsUrl `
+  -AdminEmailsToken $AdminEmailsToken `
   -WebhookToken $WebhookToken
 ```
 
