@@ -80,10 +80,21 @@ exports.argocdSyncEmail = async (req, res) => {
       return;
     }
 
-    const token = req.get("X-GymHive-Webhook-Token") || "";
-    const expectedToken = requiredEnv("WEBHOOK_TOKEN");
-    if (token !== expectedToken) {
-      res.status(401).json({ error: "Unauthorized" });
+    const token = (req.get("X-GymHive-Webhook-Token") || "").trim();
+    const expectedToken = requiredEnv("WEBHOOK_TOKEN").trim();
+    if (!token || token !== expectedToken) {
+      const debugAuth = (process.env.DEBUG_AUTH || "").trim().toLowerCase() === "true";
+      res.status(401).json({
+        status: "error",
+        message: "Unauthorized",
+        ...(debugAuth
+          ? {
+              receivedTokenPresent: Boolean(token),
+              receivedTokenLength: token.length,
+              expectedTokenLength: expectedToken.length
+            }
+          : {})
+      });
       return;
     }
 
