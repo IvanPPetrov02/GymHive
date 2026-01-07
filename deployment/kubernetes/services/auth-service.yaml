@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: auth-service
-        image: ivanppetrov/gymhive-auth-service:latest
+        image: ivanppetrov/gymhive-auth-service:main-17f6936
         ports:
         - containerPort: 8080
           name: http
