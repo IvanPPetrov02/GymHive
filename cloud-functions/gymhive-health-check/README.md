@@ -21,6 +21,7 @@ Default paths:
   - Default: `5000`
 - `ENDPOINTS` (optional)
   - Comma-separated list of paths to check.
+  - Semicolon-separated also works (recommended with `gcloud --set-env-vars`).
 
 ## Deploy (GCP Cloud Functions Gen2)
 

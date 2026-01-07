@@ -31,10 +31,14 @@ function getEndpoints() {
     return DEFAULT_ENDPOINTS;
   }
 
+  // Support comma or semicolon-separated lists.
+  // Note: semicolons are convenient with `gcloud --set-env-vars` because commas separate key/value pairs.
   return endpointsRaw
-    .split(",")
+    .split(/[;,]/)
     .map((s) => s.trim())
     .filter(Boolean)
+    // gcloud escaping sometimes leaves values like "\/health".
+    .map((p) => p.replaceAll("\\/", "/"))
     .map((p) => (p.startsWith("/") ? p : `/${p}`));
 }
 

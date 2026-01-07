@@ -29,7 +29,7 @@ gcloud functions deploy $FunctionName `
   --entry-point "gymhiveHealthCheck" `
   --trigger-http `
   --allow-unauthenticated `
-  --set-env-vars "BASE_URL=$BaseUrl,TIMEOUT_MS=$TimeoutMs"
+  --set-env-vars "BASE_URL=$BaseUrl,ENDPOINTS=/;/health,TIMEOUT_MS=$TimeoutMs"
 
 Write-Host "Done. Function URL:" 
 $uri = gcloud functions describe $FunctionName --gen2 --region $Region --format="value(serviceConfig.uri)"
