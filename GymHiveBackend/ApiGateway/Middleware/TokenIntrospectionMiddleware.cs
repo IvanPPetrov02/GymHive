@@ -63,8 +63,8 @@ public class TokenIntrospectionMiddleware
         context.Request.Headers["X-User-Role"] = validationResult.Role ?? string.Empty;
 
         _logger.LogInformation(
-            "Authenticated request for path: {Path}, UserId: {UserId}, Role: {Role}",
-            path, validationResult.UserId, validationResult.Role
+            "Authenticated request for path: {Path}, Role: {Role}",
+            path, validationResult.Role
         );
 
         // Continue to next middleware

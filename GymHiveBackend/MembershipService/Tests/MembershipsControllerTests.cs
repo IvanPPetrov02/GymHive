@@ -1,4 +1,5 @@
 using FluentAssertions;
+using GymHive.Messaging.Events;
 using GymHive.Messaging.Interfaces;
 using MembershipService.BLL.DTOs;
 using MembershipService.BLL.ManagerInterfaces;
@@ -88,6 +89,8 @@ public class MembershipsControllerTests
             GymName = "Test Gym"
         };
 
+        _mockUserContext.Setup(uc => uc.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(uc => uc.GetCurrentUserId()).Returns(membership.UserId);
         _mockMembershipManager.Setup(m => m.GetMembershipByIdAsync(membershipId))
             .ReturnsAsync(membership);
 
@@ -131,6 +134,8 @@ public class MembershipsControllerTests
             new MembershipDTO { Id = "2", UserId = userId, GymId = 2, GymName = "Gym 2" }
         };
 
+        _mockUserContext.Setup(uc => uc.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(uc => uc.GetCurrentUserId()).Returns(userId);
         _mockMembershipManager.Setup(m => m.GetMembershipsByUserIdAsync(userId))
             .ReturnsAsync(memberships);
 
@@ -268,13 +273,16 @@ public class MembershipsControllerTests
         _mockUserContext.Setup(uc => uc.GetCurrentUserId()).Returns(userId);
         _mockMembershipManager.Setup(m => m.CreateMembershipAsync(userId, createDto))
             .ReturnsAsync(createdMembership);
+        _mockEventPublisher
+            .Setup(p => p.PublishAsync(It.IsAny<MembershipPurchasedEvent>(), It.IsAny<string?>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _controller.CreateMembership(createDto);
 
         // Assert
-        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedMembership = okResult.Value as MembershipDTO;
+        var createdResult = result.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
+        var returnedMembership = createdResult.Value as MembershipDTO;
         returnedMembership.Should().NotBeNull();
         returnedMembership!.Id.Should().Be("new-id");
     }
@@ -297,6 +305,8 @@ public class MembershipsControllerTests
         var updatedMembership = new MembershipDTO { Id = membershipId, EndDate = updateDto.EndDate ?? DateTime.UtcNow.AddMonths(2), IsActive = updateDto.IsActive ?? true };
 
         _mockUserContext.Setup(uc => uc.IsInRole("Admin")).Returns(true);
+        _mockMembershipManager.Setup(m => m.GetMembershipByIdAsync(membershipId))
+            .ReturnsAsync(new MembershipDTO { Id = membershipId, UserId = Guid.NewGuid(), GymId = 1, GymName = "Test Gym" });
         _mockMembershipManager.Setup(m => m.UpdateMembershipAsync(membershipId, updateDto))
             .ReturnsAsync(updatedMembership);
 
@@ -304,7 +314,7 @@ public class MembershipsControllerTests
         var result = await _controller.UpdateMembership(membershipId, updateDto);
 
         // Assert
-        result.Should().BeOfType<OkResult>();
+        result.Result.Should().BeOfType<OkObjectResult>();
     }
 
     [Fact]
@@ -315,12 +325,16 @@ public class MembershipsControllerTests
         var updateDto = new UpdateMembershipDTO();
 
         _mockUserContext.Setup(uc => uc.IsInRole("Admin")).Returns(false);
+        var ownerUserId = Guid.NewGuid();
+        _mockMembershipManager.Setup(m => m.GetMembershipByIdAsync(membershipId))
+            .ReturnsAsync(new MembershipDTO { Id = membershipId, UserId = ownerUserId, GymId = 1, GymName = "Test Gym" });
+        _mockUserContext.Setup(uc => uc.GetCurrentUserId()).Returns(Guid.NewGuid());
 
         // Act
         var result = await _controller.UpdateMembership(membershipId, updateDto);
 
         // Assert
-        var statusCodeResult = result.Should().BeOfType<ObjectResult>().Subject;
+        var statusCodeResult = result.Result.Should().BeOfType<ObjectResult>().Subject;
         statusCodeResult.StatusCode.Should().Be(403);
     }
 

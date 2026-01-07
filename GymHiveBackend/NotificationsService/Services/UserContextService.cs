@@ -22,9 +22,7 @@ public class UserContextService : IUserContextService
     public Guid GetCurrentUserId()
     {
         var userId = GetHeaderValue("X-User-Id");
-        
-        _logger.LogInformation($"[UserContext] X-User-Id header: {userId}");
-        
+
         if (string.IsNullOrEmpty(userId))
         {
             _logger.LogError("[UserContext] User ID not found in request headers");
@@ -33,7 +31,7 @@ public class UserContextService : IUserContextService
 
         if (!Guid.TryParse(userId, out var guid))
         {
-            _logger.LogError($"[UserContext] Invalid user ID format: {userId}");
+            _logger.LogError("[UserContext] Invalid user ID format");
             throw new UnauthorizedAccessException("Invalid user ID format");
         }
 
@@ -43,14 +41,12 @@ public class UserContextService : IUserContextService
     public string? GetCurrentUserEmail()
     {
         var email = GetHeaderValue("X-User-Email");
-        _logger.LogInformation($"[UserContext] X-User-Email header: {email}");
         return email;
     }
 
     public string? GetCurrentUserRole()
     {
         var role = GetHeaderValue("X-User-Role");
-        _logger.LogInformation($"[UserContext] X-User-Role header: {role}");
         return role;
     }
 

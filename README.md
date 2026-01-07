@@ -218,6 +218,10 @@ This project follows a **microservices architecture** with an API Gateway patter
 - **Membership Service**: Membership management and operations
 - **Databases**: Separate MySQL 8.0 databases per service (database-per-service pattern)
 
+## 🔐 Privacy & GDPR
+
+See [GDPR-README.md](GDPR-README.md) for the current state of GDPR/privacy-related measures implemented in this project.
+
 ## 🚀 CI/CD Pipelines
 
 Each component has its own CI pipeline that only runs when relevant files are changed:

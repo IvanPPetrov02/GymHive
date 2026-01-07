@@ -44,6 +44,23 @@ public class MembershipsController : ControllerBase
     {
         var membership = await _membershipManager.GetMembershipByIdAsync(id);
         if (membership == null) return NotFound();
+
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                if (membership.UserId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
+        }
+
         return Ok(membership);
     }
 
@@ -51,6 +68,22 @@ public class MembershipsController : ControllerBase
     [HttpGet("user/{userId}")]
     public async Task<ActionResult<IEnumerable<MembershipDTO>>> GetMembershipsByUserId(Guid userId)
     {
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                if (userId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
+        }
+
         var memberships = await _membershipManager.GetMembershipsByUserIdAsync(userId);
         return Ok(memberships);
     }
@@ -124,6 +157,25 @@ public class MembershipsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<MembershipDTO>> UpdateMembership(string id, [FromBody] UpdateMembershipDTO updateMembershipDto)
     {
+        var existing = await _membershipManager.GetMembershipByIdAsync(id);
+        if (existing == null) return NotFound();
+
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                if (existing.UserId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
+        }
+
         var membership = await _membershipManager.UpdateMembershipAsync(id, updateMembershipDto);
         if (membership == null) return NotFound();
         return Ok(membership);

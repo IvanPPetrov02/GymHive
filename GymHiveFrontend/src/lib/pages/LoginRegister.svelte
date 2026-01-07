@@ -75,7 +75,12 @@
         </ul>
       </div>
       <div class="relative">
-        <p class="text-xs text-blue-200">By continuing you agree to our Terms & Privacy Policy.</p>
+        <p class="text-xs text-blue-200">
+          By continuing you agree to our
+          <a href="#/terms" class="underline hover:text-white">Terms</a>
+          &
+          <a href="#/privacy" class="underline hover:text-white">Privacy Policy</a>.
+        </p>
       </div>
     </div>
 

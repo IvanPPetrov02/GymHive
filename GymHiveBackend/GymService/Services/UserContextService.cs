@@ -27,7 +27,7 @@ public class UserContextService : IUserContextService
 
         if (!Guid.TryParse(userId, out var guid))
         {
-            _logger.LogError("Invalid X-User-Id format: {UserId}", userId);
+            _logger.LogError("Invalid X-User-Id format");
             throw new UnauthorizedAccessException("Invalid user ID format");
         }
 
@@ -65,8 +65,6 @@ public class UserContextService : IUserContextService
         try
         {
             var userRole = GetCurrentUserRole();
-            _logger.LogInformation("IsInRole check: UserRole='{UserRole}', CheckingFor='{Role}', Match={Match}", 
-                userRole, role, userRole.Equals(role, StringComparison.OrdinalIgnoreCase));
             return userRole.Equals(role, StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex)
@@ -90,7 +88,7 @@ public class UserContextService : IUserContextService
             return gymId;
         }
 
-        _logger.LogWarning("Invalid X-User-GymId format: {GymId}", gymIdStr);
+        _logger.LogWarning("Invalid X-User-GymId format");
         return null;
     }
 

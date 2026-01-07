@@ -62,8 +62,8 @@ public class AuthServiceClient : IAuthServiceClient
                 };
             }
 
-            _logger.LogInformation("Token validation result: Active={Active}, UserId={UserId}, Role={Role}", 
-                result.Active, result.UserId, result.Role);
+            _logger.LogInformation("Token validation result: Active={Active}, Role={Role}",
+                result.Active, result.Role);
 
             return result;
         }

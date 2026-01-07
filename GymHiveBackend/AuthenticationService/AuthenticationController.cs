@@ -37,7 +37,6 @@ namespace AuthenticationService.Controllers
         public async Task<IActionResult> Register([FromBody] UserRegisterDTO userDto)
         {
             _logger.LogInformation("Register endpoint hit");
-            _logger.LogInformation($"Email: {userDto.Email}, Name: {userDto.Name}, Surname: {userDto.Surname}");
 
             try
             {
@@ -56,7 +55,7 @@ namespace AuthenticationService.Controllers
                             Username = userDto.Email,
                             RoleId = 1 // Default role
                         });
-                        _logger.LogInformation($"Published UserRegisteredEvent for {userDto.Email}");
+                        _logger.LogInformation("Published UserRegisteredEvent");
                     }
                     catch (Exception ex)
                     {
@@ -68,7 +67,7 @@ namespace AuthenticationService.Controllers
                 }
                 else
                 {
-                    _logger.LogWarning($"Registration failed: {result}");
+                    _logger.LogWarning("Registration failed: {Result}", result);
                     return BadRequest(new { message = result });
                 }
             }
@@ -102,6 +101,11 @@ namespace AuthenticationService.Controllers
         [HttpGet("{uuid}")]
         public async Task<IActionResult> GetUser(string uuid)
         {
+            if (!CanAccessUserResource(uuid))
+            {
+                return Forbid();
+            }
+
             var user = await _userManager.GetUserByIdAsync(uuid);
             if (user == null) return NotFound();
             
@@ -115,6 +119,11 @@ namespace AuthenticationService.Controllers
         {
             try
             {
+                if (!CanAccessUserResource(uuid))
+                {
+                    return Forbid();
+                }
+
                 await _userManager.UpdateUserDetailsAsync(uuid, userDto);
                 return Ok();
             }
@@ -131,6 +140,11 @@ namespace AuthenticationService.Controllers
         {
             try
             {
+                if (!CanAccessUserResource(uuid))
+                {
+                    return Forbid();
+                }
+
                 // Get user info before deletion
                 var user = await _userManager.GetUserByIdAsync(uuid);
                 if (user == null)
@@ -143,11 +157,13 @@ namespace AuthenticationService.Controllers
 
                 // Publish UserDeletedEvent - triggers choreographed SAGA
                 // Other services will react to this event and clean up their data
-                _logger.LogInformation("Publishing UserDeletedEvent for user {UserId}", uuid);
+                var sagaId = Guid.NewGuid().ToString("N");
+                _logger.LogInformation("Publishing UserDeletedEvent. SagaId: {SagaId}", sagaId);
                 await _eventPublisher.PublishAsync(new UserDeletedEvent
                 {
                     UserId = Guid.Parse(uuid),
                     Email = user.Email,
+                    SagaId = sagaId,
                     DeletedAt = DateTime.UtcNow
                 });
 
@@ -185,7 +201,7 @@ namespace AuthenticationService.Controllers
             return Ok(userDto);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetAllUsers")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -240,6 +256,11 @@ namespace AuthenticationService.Controllers
         {
             try
             {
+                if (!CanAccessUserResource(uuid))
+                {
+                    return Forbid();
+                }
+
                 await _userManager.ChangePasswordAsync(uuid, passwordChangeDto.NewPassword, passwordChangeDto.OldPassword);
                 return Ok(new { Message = "Password successfully changed." });
             }
@@ -294,9 +315,8 @@ namespace AuthenticationService.Controllers
 
             // Log validation attempt for security auditing
             _logger.LogInformation(
-                "Token introspection: Active={Active}, UserId={UserId}, Error={Error}",
+                "Token introspection: Active={Active}, Error={Error}",
                 result.Active,
-                result.UserId,
                 result.Error
             );
 
@@ -313,8 +333,7 @@ namespace AuthenticationService.Controllers
         {
             try
             {
-                _logger.LogInformation("🔵 CreateModerator called - FirstName: {FirstName}, LastName: {LastName}, GymName: {GymName}, GymId: {GymId}", 
-                    moderatorDto.FirstName, moderatorDto.LastName, moderatorDto.GymName, moderatorDto.GymId);
+                _logger.LogInformation("CreateModerator called for gym {GymId}", moderatorDto.GymId);
 
                 // Generate email: firstname.lastname@gymname.com
                 var gymNameSlug = moderatorDto.GymName.ToLower().Replace(" ", "");
@@ -345,22 +364,15 @@ namespace AuthenticationService.Controllers
                 var createdUser = await _userManager.GetUserByEmailAsync(email);
                 if (createdUser != null)
                 {
-                    _logger.LogInformation("🔵 About to update role and GymId for user {UUID} - GymId value: {GymId}", 
-                        createdUser.UUID, moderatorDto.GymId);
+                    _logger.LogInformation("Updating role and GymId for created moderator. GymId: {GymId}", moderatorDto.GymId);
                     
                     await _userManager.UpdateUserRoleAsync(createdUser.UUID.ToString(), Role.Moderator);
-                    _logger.LogInformation("🔵 Role updated to Moderator");
                     
                     await _userManager.UpdateUserGymIdAsync(createdUser.UUID.ToString(), moderatorDto.GymId);
-                    _logger.LogInformation("🔵 GymId updated to {GymId}", moderatorDto.GymId);
                     
                     // Verify the GymId was actually set
                     var verifyUser = await _userManager.GetUserByEmailAsync(email);
-                    _logger.LogInformation("🔵 Verification - User {UUID} now has GymId: {GymId}", 
-                        verifyUser?.UUID, verifyUser?.GymId);
-
-                    _logger.LogInformation("✅ Created moderator: {Email} (UUID: {UUID}, Role: Moderator, GymId: {GymId})", 
-                        email, createdUser.UUID, moderatorDto.GymId);
+                    _logger.LogInformation("Created moderator for gym {GymId}. GymId set: {GymIdSet}", moderatorDto.GymId, verifyUser?.GymId);
 
                     // Publish event so GymService can link this moderator to the gym
                     try
@@ -395,7 +407,7 @@ namespace AuthenticationService.Controllers
                 }
                 else
                 {
-                    _logger.LogError("❌ Failed to retrieve created user {Email}", email);
+                    _logger.LogError("Failed to retrieve created user");
                     return StatusCode(500, new { message = "Failed to create moderator" });
                 }
             }
@@ -404,6 +416,32 @@ namespace AuthenticationService.Controllers
                 _logger.LogError(ex, "❌ ERROR creating moderator");
                 return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
+        }
+
+        private bool CanAccessUserResource(string uuid)
+        {
+            if (User.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim))
+            {
+                return false;
+            }
+
+            if (!Guid.TryParse(userIdClaim, out var currentUserId))
+            {
+                return false;
+            }
+
+            if (!Guid.TryParse(uuid, out var targetUserId))
+            {
+                return false;
+            }
+
+            return currentUserId == targetUserId;
         }
 
         // Helper method to map User entity to UserDTO with role as string

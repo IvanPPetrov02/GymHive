@@ -14,4 +14,5 @@ public interface IGymGroupRepository
     Task<IEnumerable<GymGroupMember>> GetGroupMembersAsync(int groupId);
     Task AddMemberAsync(GymGroupMember member);
     Task RemoveMemberByUserIdAsync(int groupId, Guid userId);
+    Task<int> RemoveAllMembershipsByUserIdAsync(Guid userId);
 }

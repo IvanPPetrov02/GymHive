@@ -219,6 +219,8 @@ public class GymsControllerTests
         // Arrange
         var gymId = 1;
         _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(true);
+        _mockGymManager.Setup(m => m.GetGymByIdAsync(gymId))
+            .ReturnsAsync(new GymDTO { Id = gymId, Name = "Test Gym", Address = "Test Address" });
         _mockGymManager.Setup(m => m.DeleteGymAsync(gymId))
             .ReturnsAsync(true);
 
@@ -251,6 +253,8 @@ public class GymsControllerTests
         // Arrange
         var gymId = 999;
         _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(true);
+        _mockGymManager.Setup(m => m.GetGymByIdAsync(gymId))
+            .ReturnsAsync((GymDTO)null);
         _mockGymManager.Setup(m => m.DeleteGymAsync(gymId))
             .ReturnsAsync(false);
 

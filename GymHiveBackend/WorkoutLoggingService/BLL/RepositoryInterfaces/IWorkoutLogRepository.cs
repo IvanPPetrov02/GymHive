@@ -8,5 +8,6 @@ public interface IWorkoutLogRepository
     Task<List<WorkoutLog>> GetUserVisitsByDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate);
     Task<WorkoutLog> AddAsync(WorkoutLog workoutLog);
     Task DeleteAsync(int id);
+    Task<int> DeleteByUserIdAsync(Guid userId);
     Task<bool> HasVisitOnDateAsync(Guid userId, int gymId, DateTime date);
 }

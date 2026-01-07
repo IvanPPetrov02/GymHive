@@ -55,6 +55,8 @@ public class AuthEventConsumer : IHostedService
             var userManager = scope.ServiceProvider.GetRequiredService<IUserManager>();
 
             var createdModerators = new List<CreatedModeratorInfo>();
+            var createdCount = 0;
+            var failedCount = 0;
             var gymNameSlug = @event.GymName.ToLower().Replace(" ", "");
             var defaultPassword = "Moderator123!"; // Default password from frontend
 
@@ -97,12 +99,12 @@ public class AuthEventConsumer : IHostedService
                         LastName = moderator.LastName
                     });
 
-                    _logger.LogInformation("✅ Created moderator: {Email} (UUID: {UUID}, Role: Moderator)", 
-                        email, createdUser.UUID);
+                    createdCount++;
                 }
                 else
                 {
-                    _logger.LogError("❌ Failed to retrieve created user {Email}", email);
+                    failedCount++;
+                    _logger.LogError("Failed to retrieve created moderator user record");
                 }
             }
 
@@ -113,8 +115,8 @@ public class AuthEventConsumer : IHostedService
                 Moderators = createdModerators
             });
 
-            _logger.LogInformation("✅ Created {Count} moderator(s) for gym {GymId}", 
-                createdModerators.Count, @event.GymId);
+            _logger.LogInformation("✅ Created {Count} moderator(s) for gym {GymId} (Failed: {Failed})",
+                createdCount, @event.GymId, failedCount);
         }
         catch (Exception ex)
         {

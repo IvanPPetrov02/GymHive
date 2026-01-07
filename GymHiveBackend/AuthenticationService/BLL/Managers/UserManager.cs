@@ -71,28 +71,20 @@ namespace BLL
         {
             try
             {
-                Console.WriteLine($"Attempting to delete user with UUID: {uuid}");
-
                 var user = await _userDao.GetUserByIdAsync(uuid);
                 if (user == null)
                 {
                     throw new InvalidOperationException("User not found.");
                 }
 
-                Console.WriteLine($"User found: {user.Email}");
-
-
                 await _userDao.DeleteUserAsync(uuid);
-                Console.WriteLine($"User deleted: {uuid}");
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                Console.WriteLine($"Operation error: {ex.Message}");
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
                 throw;
             }
         }

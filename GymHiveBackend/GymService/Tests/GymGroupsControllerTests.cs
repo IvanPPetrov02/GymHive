@@ -146,6 +146,8 @@ public class GymGroupsControllerTests
         };
         
         _mockUserContext.Setup(u => u.IsInRole("Moderator")).Returns(true);
+        _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(u => u.GetCurrentUserId()).Returns(moderatorId);
         _mockGymGroupManager.Setup(m => m.GetGymGroupsByModeratorIdAsync(moderatorId))
             .ReturnsAsync(gymGroups);
 
@@ -208,9 +210,13 @@ public class GymGroupsControllerTests
     {
         // Arrange
         var createDto = new CreateGymGroupDTO { Name = "New Group", GymId = 1 };
-        var createdGroup = new GymGroupDTO { Id = 1, Name = "New Group", GymId = 1 };
+        var moderatorId = Guid.NewGuid();
+        var createdGroup = new GymGroupDTO { Id = 1, Name = "New Group", GymId = 1, ModeratorId = moderatorId };
         
         _mockUserContext.Setup(u => u.IsInRole("Moderator")).Returns(true);
+        _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(u => u.GetCurrentUserId()).Returns(moderatorId);
+        _mockUserContext.Setup(u => u.GetCurrentUserGymId()).Returns(1);
         _mockGymGroupManager.Setup(m => m.CreateGymGroupAsync(createDto))
             .ReturnsAsync(createdGroup);
 
@@ -271,9 +277,15 @@ public class GymGroupsControllerTests
         // Arrange
         var groupId = 1;
         var updateDto = new UpdateGymGroupDTO { Name = "Updated Group" };
-        var updatedGroup = new GymGroupDTO { Id = groupId, Name = "Updated Group", GymId = 1 };
+        var moderatorId = Guid.NewGuid();
+        var existingGroup = new GymGroupDTO { Id = groupId, Name = "Test Group", GymId = 1, ModeratorId = moderatorId };
+        var updatedGroup = new GymGroupDTO { Id = groupId, Name = "Updated Group", GymId = 1, ModeratorId = moderatorId };
         
         _mockUserContext.Setup(u => u.IsInRole("Moderator")).Returns(true);
+        _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(u => u.GetCurrentUserId()).Returns(moderatorId);
+        _mockGymGroupManager.Setup(m => m.GetGymGroupByIdAsync(groupId))
+            .ReturnsAsync(existingGroup);
         _mockGymGroupManager.Setup(m => m.UpdateGymGroupAsync(groupId, updateDto))
             .ReturnsAsync(updatedGroup);
 
@@ -331,7 +343,12 @@ public class GymGroupsControllerTests
     {
         // Arrange
         var groupId = 1;
+        var moderatorId = Guid.NewGuid();
         _mockUserContext.Setup(u => u.IsInRole("Moderator")).Returns(true);
+        _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(u => u.GetCurrentUserId()).Returns(moderatorId);
+        _mockGymGroupManager.Setup(m => m.GetGymGroupByIdAsync(groupId))
+            .ReturnsAsync(new GymGroupDTO { Id = groupId, Name = "Group One", GymId = 1, ModeratorId = moderatorId });
         _mockGymGroupManager.Setup(m => m.DeleteGymGroupAsync(groupId))
             .ReturnsAsync(true);
 
@@ -382,6 +399,10 @@ public class GymGroupsControllerTests
         // Arrange
         var groupId = 999;
         _mockUserContext.Setup(u => u.IsInRole("Moderator")).Returns(true);
+        _mockUserContext.Setup(u => u.IsInRole("Admin")).Returns(false);
+        _mockUserContext.Setup(u => u.GetCurrentUserId()).Returns(Guid.NewGuid());
+        _mockGymGroupManager.Setup(m => m.GetGymGroupByIdAsync(groupId))
+            .ReturnsAsync((GymGroupDTO)null);
         _mockGymGroupManager.Setup(m => m.DeleteGymGroupAsync(groupId))
             .ReturnsAsync(false);
 

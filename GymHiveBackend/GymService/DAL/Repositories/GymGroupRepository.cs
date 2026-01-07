@@ -100,4 +100,20 @@ public class GymGroupRepository : IGymGroupRepository
             await _context.SaveChangesAsync();
         }
     }
+
+    public async Task<int> RemoveAllMembershipsByUserIdAsync(Guid userId)
+    {
+        var members = await _context.GymGroupMembers
+            .Where(m => m.UserId == userId)
+            .ToListAsync();
+
+        if (members.Count == 0)
+        {
+            return 0;
+        }
+
+        _context.GymGroupMembers.RemoveRange(members);
+        await _context.SaveChangesAsync();
+        return members.Count;
+    }
 }

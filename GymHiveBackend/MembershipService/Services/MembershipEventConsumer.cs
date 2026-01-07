@@ -49,7 +49,7 @@ public class MembershipEventConsumer : IHostedService
     private async Task HandleUserDeletedAsync(UserDeletedEvent @event)
     {
         _logger.LogInformation("========== SAGA: UserDeleted - Deleting Memberships ==========");
-        _logger.LogInformation("UserId: {UserId}, Email: {Email}", @event.UserId, @event.Email);
+        _logger.LogInformation("SagaId: {SagaId}", @event.SagaId);
         
         try
         {
@@ -84,6 +84,7 @@ public class MembershipEventConsumer : IHostedService
             await _eventPublisher.PublishAsync(new UserMembershipsDeletedEvent
             {
                 UserId = @event.UserId,
+                SagaId = @event.SagaId,
                 DeletedCount = memberships.Count()
             });
 

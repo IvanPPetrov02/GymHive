@@ -46,6 +46,22 @@ public class WorkoutLogRepository : IWorkoutLogRepository
         }
     }
 
+    public async Task<int> DeleteByUserIdAsync(Guid userId)
+    {
+        var logs = await _context.WorkoutLogs
+            .Where(w => w.UserId == userId)
+            .ToListAsync();
+
+        if (logs.Count == 0)
+        {
+            return 0;
+        }
+
+        _context.WorkoutLogs.RemoveRange(logs);
+        await _context.SaveChangesAsync();
+        return logs.Count;
+    }
+
     public async Task<bool> HasVisitOnDateAsync(Guid userId, int gymId, DateTime date)
     {
         return await _context.WorkoutLogs

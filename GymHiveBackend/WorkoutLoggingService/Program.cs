@@ -70,6 +70,9 @@ builder.Services.AddScoped<IWorkoutLogRepository, WorkoutLogRepository>();
 // Register Managers
 builder.Services.AddScoped<IWorkoutLogManager, WorkoutLogManager>();
 
+// Register Background Services
+builder.Services.AddHostedService<UserDeletionEventConsumer>();
+
 // Configure RabbitMQ Event Bus for publishing
 var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ");
 var rabbitMqConnection = $"amqp://{rabbitMqConfig["UserName"]}:{rabbitMqConfig["Password"]}@{rabbitMqConfig["HostName"]}:{rabbitMqConfig["Port"]}{rabbitMqConfig["VirtualHost"]}";

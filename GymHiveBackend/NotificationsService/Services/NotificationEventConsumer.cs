@@ -350,7 +350,7 @@ public class NotificationEventConsumer : IHostedService
     private async Task HandleUserDeletedAsync(UserDeletedEvent @event)
     {
         _logger.LogInformation("========== SAGA: UserDeleted - Deleting Notifications ==========");
-        _logger.LogInformation("UserId: {UserId}, Email: {Email}", @event.UserId, @event.Email);
+        _logger.LogInformation("SagaId: {SagaId}", @event.SagaId);
         
         try
         {
@@ -382,6 +382,7 @@ public class NotificationEventConsumer : IHostedService
             await _eventPublisher.PublishAsync(new UserNotificationsDeletedEvent
             {
                 UserId = @event.UserId,
+                SagaId = @event.SagaId,
                 DeletedCount = notifications.Count()
             });
 

@@ -55,6 +55,22 @@ public class GymGroupsController : ControllerBase
             return StatusCode(403, new { error = "Forbidden" });
         }
 
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                if (moderatorId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
+        }
+
         var gymGroups = await _gymGroupManager.GetGymGroupsByModeratorIdAsync(moderatorId);
         return Ok(gymGroups);
     }
@@ -109,6 +125,21 @@ public class GymGroupsController : ControllerBase
                 return StatusCode(403, new { error = "Forbidden" });
             }
 
+            if (!_userContext.IsInRole("Admin"))
+            {
+                var currentGymId = _userContext.GetCurrentUserGymId();
+                if (!currentGymId.HasValue)
+                {
+                    return BadRequest(new { error = "Moderator must have a gym assigned" });
+                }
+
+                var currentUserId = _userContext.GetCurrentUserId();
+
+                // Prevent moderators from creating groups for other gyms/users
+                createGymGroupDto.GymId = currentGymId.Value;
+                createGymGroupDto.ModeratorId = currentUserId;
+            }
+
             _logger.LogInformation("CreateGymGroup - Role check passed, creating gym group...");
             var gymGroup = await _gymGroupManager.CreateGymGroupAsync(createGymGroupDto);
             _logger.LogInformation("CreateGymGroup - Successfully created gym group with ID: {Id}", gymGroup.Id);
@@ -131,6 +162,24 @@ public class GymGroupsController : ControllerBase
             return StatusCode(403, new { error = "Forbidden" });
         }
 
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                var existing = await _gymGroupManager.GetGymGroupByIdAsync(id);
+                if (existing == null) return NotFound();
+                if (existing.ModeratorId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
+        }
+
         var gymGroup = await _gymGroupManager.UpdateGymGroupAsync(id, updateGymGroupDto);
         if (gymGroup == null) return NotFound();
         return Ok(gymGroup);
@@ -146,6 +195,24 @@ public class GymGroupsController : ControllerBase
             return StatusCode(403, new { error = "Forbidden" });
         }
 
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                var existing = await _gymGroupManager.GetGymGroupByIdAsync(id);
+                if (existing == null) return NotFound();
+                if (existing.ModeratorId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
+        }
+
         var result = await _gymGroupManager.DeleteGymGroupAsync(id);
         if (!result) return NotFound();
         return NoContent();
@@ -156,8 +223,21 @@ public class GymGroupsController : ControllerBase
     {
         try
         {
+            if (!_userContext.IsInRole("Admin"))
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                if (request.UserId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+
             await _gymGroupManager.AddMemberAsync(id, request.UserId);
             return Ok(new { message = "Successfully joined the group" });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return StatusCode(401, new { error = "Unauthorized" });
         }
         catch (Exception ex)
         {
@@ -170,8 +250,21 @@ public class GymGroupsController : ControllerBase
     {
         try
         {
+            if (!_userContext.IsInRole("Admin"))
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                if (request.UserId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+
             await _gymGroupManager.RemoveMemberByUserIdAsync(id, request.UserId);
             return Ok(new { message = "Successfully left the group" });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return StatusCode(401, new { error = "Unauthorized" });
         }
         catch (Exception ex)
         {
@@ -185,6 +278,24 @@ public class GymGroupsController : ControllerBase
         if (!_userContext.IsInRole("Moderator") && !_userContext.IsInRole("Admin"))
         {
             return StatusCode(403, new { error = "Forbidden" });
+        }
+
+        if (!_userContext.IsInRole("Admin"))
+        {
+            try
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                var existing = await _gymGroupManager.GetGymGroupByIdAsync(id);
+                if (existing == null) return NotFound();
+                if (existing.ModeratorId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(401, new { error = "Unauthorized" });
+            }
         }
 
         var members = await _gymGroupManager.GetGroupMembersAsync(id);
@@ -201,6 +312,17 @@ public class GymGroupsController : ControllerBase
 
         try
         {
+            if (!_userContext.IsInRole("Admin"))
+            {
+                var currentUserId = _userContext.GetCurrentUserId();
+                var existing = await _gymGroupManager.GetGymGroupByIdAsync(groupId);
+                if (existing == null) return NotFound();
+                if (existing.ModeratorId != currentUserId)
+                {
+                    return StatusCode(403, new { error = "Forbidden" });
+                }
+            }
+
             Guid userGuid;
             try
             {
@@ -213,6 +335,10 @@ public class GymGroupsController : ControllerBase
 
             await _gymGroupManager.RemoveMemberByUserIdAsync(groupId, userGuid);
             return Ok(new { message = "Member removed successfully" });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return StatusCode(401, new { error = "Unauthorized" });
         }
         catch (Exception ex)
         {

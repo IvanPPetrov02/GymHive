@@ -35,6 +35,7 @@ public class GymEventConsumer : IHostedService
         // Subscribe to SAGA events
         _eventSubscriber.Subscribe<GymDeletedEvent>(HandleGymDeletedAsync);
         _eventSubscriber.Subscribe<ModeratorsCreatedEvent>(HandleModeratorsCreatedAsync);
+        _eventSubscriber.Subscribe<UserDeletedEvent>(HandleUserDeletedAsync);
         
         _eventSubscriber.StartConsuming();
 
@@ -119,12 +120,15 @@ public class GymEventConsumer : IHostedService
     private async Task HandleModeratorsCreatedAsync(ModeratorsCreatedEvent @event)
     {
         _logger.LogInformation("========== Linking Moderators to Gym ==========");
-        _logger.LogInformation("GymId: {GymId}, Moderators: {Count}", @event.GymId, @event.Moderators.Count);
+        _logger.LogInformation("EventId: {EventId}, GymId: {GymId}, Moderators: {Count}", @event.EventId, @event.GymId, @event.Moderators.Count);
         
         try
         {
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<DAL.DbContexts.GymDbContext>();
+
+            var createdLinks = 0;
+            var existingLinks = 0;
 
             foreach (var moderator in @event.Moderators)
             {
@@ -142,23 +146,77 @@ public class GymEventConsumer : IHostedService
                     };
 
                     await dbContext.GymModerators.AddAsync(gymModerator);
-                    _logger.LogInformation("✅ Linked moderator {Email} (UUID: {UUID}) to gym {GymId}", 
-                        moderator.Email, moderator.UserId, @event.GymId);
+                    createdLinks++;
                 }
                 else
                 {
-                    _logger.LogInformation("⚠️ Moderator {Email} already linked to gym {GymId}", 
-                        moderator.Email, @event.GymId);
+                    existingLinks++;
                 }
             }
 
             await dbContext.SaveChangesAsync();
-            _logger.LogInformation("✅ Successfully linked {Count} moderator(s) to gym {GymId}", 
-                @event.Moderators.Count, @event.GymId);
+            _logger.LogInformation("✅ Linked moderators to gym {GymId}. CreatedLinks: {CreatedLinks}, ExistingLinks: {ExistingLinks}",
+                @event.GymId, createdLinks, existingLinks);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ ERROR linking moderators to gym {GymId}", @event.GymId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// User Deletion cleanup - remove user from gym groups and moderator links
+    /// </summary>
+    private async Task HandleUserDeletedAsync(UserDeletedEvent @event)
+    {
+        _logger.LogInformation("UserDeleted received (GymService cleanup). SagaId: {SagaId}", @event.SagaId);
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var gymGroupRepository = scope.ServiceProvider.GetRequiredService<IGymGroupRepository>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DAL.DbContexts.GymDbContext>();
+
+            var removedMembershipCount = await gymGroupRepository.RemoveAllMembershipsByUserIdAsync(@event.UserId);
+
+            // Remove gym-moderator links
+            var moderatorLinks = await dbContext.GymModerators
+                .Where(gm => gm.ModeratorUserId == @event.UserId)
+                .ToListAsync();
+
+            if (moderatorLinks.Count > 0)
+            {
+                dbContext.GymModerators.RemoveRange(moderatorLinks);
+                await dbContext.SaveChangesAsync();
+            }
+
+            // Detach user from any groups they moderate
+            var moderatedGroups = await dbContext.GymGroups
+                .Where(g => g.ModeratorId == @event.UserId)
+                .ToListAsync();
+
+            if (moderatedGroups.Count > 0)
+            {
+                foreach (var group in moderatedGroups)
+                {
+                    group.ModeratorId = Guid.Empty;
+                    group.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await dbContext.SaveChangesAsync();
+            }
+
+            _logger.LogInformation(
+                "GymService cleanup complete. SagaId: {SagaId}, RemovedMemberships: {RemovedMemberships}, RemovedModeratorLinks: {RemovedModeratorLinks}, ModeratedGroupsUpdated: {ModeratedGroupsUpdated}",
+                @event.SagaId,
+                removedMembershipCount,
+                moderatorLinks.Count,
+                moderatedGroups.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GymService cleanup failed. SagaId: {SagaId}", @event.SagaId);
             throw;
         }
     }

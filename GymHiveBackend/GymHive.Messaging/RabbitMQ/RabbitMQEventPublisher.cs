@@ -46,10 +46,19 @@ public class RabbitMQEventPublisher : IEventPublisher, IDisposable
             var message = JsonConvert.SerializeObject(@event);
             var body = Encoding.UTF8.GetBytes(message);
 
+            var properties = new BasicProperties
+            {
+                DeliveryMode = DeliveryModes.Persistent,
+                ContentType = "application/json",
+                MessageId = @event.EventId.ToString("D")
+            };
+
             // Publish message
             await _channel.BasicPublishAsync(
                 exchange: exchangeName,
                 routingKey: string.Empty,
+                mandatory: false,
+                basicProperties: properties,
                 body: body
             );
 

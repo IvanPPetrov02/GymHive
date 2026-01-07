@@ -11,10 +11,7 @@ spec:
     path: deployment/kubernetes
     directory:
       recurse: true
-      exclude:
-      - gke/**
-      - monitoring-k8s/**
-      - "**/monitoring-k8s/**"
+      exclude: "monitoring-k8s/**"
   destination:
     server: https://kubernetes.default.svc
     namespace: ""

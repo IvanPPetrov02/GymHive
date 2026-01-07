@@ -13,6 +13,8 @@
   import { ensureAuthenticated, requireRole, user, isAuthenticated } from './lib/auth';
   import { get } from 'svelte/store';
   import { replace } from 'svelte-spa-router';
+  import Privacy from './lib/pages/Privacy.svelte';
+  import Terms from './lib/pages/Terms.svelte';
   
   // Service Pages
   import MyMemberships from './lib/pages/MyMemberships.svelte';
@@ -74,6 +76,8 @@
     }),
     '/login': LoginRegister,
     '/register': LoginRegister,
+    '/privacy': Privacy,
+    '/terms': Terms,
     '/gyms': wrap({
       component: Gyms,
       conditions: [authGuard]

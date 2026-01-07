@@ -102,18 +102,23 @@ kubectl port-forward service/rabbitmq 15672:15672 -n gymhive
 
 ### 1. Create GKE Cluster
 ```bash
-gcloud container clusters create gymhive-cluster \
-  --num-nodes=3 \
-  --machine-type=e2-standard-2 \
-  --zone=us-central1-a \
-  --enable-autoscaling \
-  --min-nodes=3 \
-  --max-nodes=10
+# Autopilot (recommended for simplicity)
+gcloud container clusters create-auto gymhive-autopilot \
+  --region=europe-west1
+
+# Standard (if you prefer managing node pools yourself)
+# gcloud container clusters create gymhive-cluster \
+#   --region=europe-west1 \
+#   --machine-type=e2-standard-2 \
+#   --num-nodes=2 \
+#   --enable-autoscaling \
+#   --min-nodes=1 \
+#   --max-nodes=4
 ```
 
 ### 2. Get Credentials
 ```bash
-gcloud container clusters get-credentials gymhive-cluster --zone=us-central1-a
+gcloud container clusters get-credentials gymhive-autopilot --region=europe-west1
 ```
 
 ### 3. Deploy Application

@@ -200,8 +200,7 @@ app.Use(async (context, next) =>
         context.Request.Headers["X-User-Role"] = result.Role ?? "";
         context.Request.Headers["X-User-GymId"] = result.GymId?.ToString() ?? "";
 
-        logger.LogInformation("✅ Token validated for {Email} with role {Role}, GymId: {GymId}, headers added for {Path}",
-            result.Email, result.Role, result.GymId, path);
+        logger.LogInformation("✅ Token validated (Role: {Role}) for {Path}", result.Role, path);
     }
     catch (Exception ex)
     {
