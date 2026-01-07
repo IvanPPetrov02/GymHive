@@ -6,7 +6,7 @@ metadata:
   namespace: gymhive
 spec:
   redirectToHttps:
-    enabled: true
+    enabled: false
 ---
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
