@@ -185,3 +185,6 @@ tagged-release
 
 # End of .gitignore
 
+# Root build artifacts (do not commit)
+index-bundle.js
+

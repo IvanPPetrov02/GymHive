@@ -24,6 +24,7 @@ function New-RandomToken {
 
 if (-not $WebhookToken) {
   $WebhookToken = New-RandomToken
+  $generatedToken = $true
 }
 
 Write-Host "Configuring ArgoCD Notifications webhook service to call: $FunctionUrl"
@@ -83,4 +84,9 @@ $annotationKey = "notifications.argoproj.io/subscribe.on-sync-succeeded.gymhive-
 kubectl -n $ApplicationNamespace annotate application $ApplicationName $annotationKey="" --overwrite | Out-Null
 
 Write-Host "Done. Webhook token was generated/used but not printed."
+if ($generatedToken) {
+  Write-Host "Webhook token (save this somewhere safe): $WebhookToken"
+} else {
+  Write-Host "Webhook token was provided via -WebhookToken."
+}
 Write-Host "Next: deploy the Cloud Function with WEBHOOK_TOKEN set to the same value."

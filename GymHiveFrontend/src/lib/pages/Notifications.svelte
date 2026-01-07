@@ -28,9 +28,6 @@
       const token = await getAccessToken();
       const apiBase = getApiBase();
 
-      console.log('[Notifications] Token:', token ? `${token.substring(0, 20)}...` : 'NULL');
-      console.log('[Notifications] API Base:', apiBase);
-
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
@@ -39,16 +36,12 @@
         ? `${apiBase}/api/notifications/unread`
         : `${apiBase}/api/notifications`;
 
-      console.log('[Notifications] Fetching:', endpoint);
-
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-
-      console.log('[Notifications] Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -57,7 +50,6 @@
       }
 
       notifications = await response.json();
-      console.log('[Notifications] Received notifications:', notifications.length);
     } catch (err: any) {
       error = err.message || 'Failed to load notifications';
       console.error('Error fetching notifications:', err);

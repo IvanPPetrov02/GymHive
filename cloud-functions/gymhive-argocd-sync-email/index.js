@@ -278,15 +278,6 @@ exports.argocdSyncEmail = async (req, res) => {
       });
     }
 
-    console.log(
-      JSON.stringify({
-        status: "sent",
-        toEmailCount: recipients.length,
-        app: summary.appName,
-        revision: summary.revision
-      })
-    );
-
     res.status(200).json({ status: "sent" });
   } catch (error) {
     console.error(error);

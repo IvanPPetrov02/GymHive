@@ -42,6 +42,7 @@
     <ItemGroup>
         <Compile Remove="BLL\**" />
         <Compile Remove="DAL\**" />
+        <Compile Remove="MigrateMemberships.cs" />
         <Content Remove="BLL\**" />
         <Content Remove="DAL\**" />
         <EmbeddedResource Remove="BLL\**" />

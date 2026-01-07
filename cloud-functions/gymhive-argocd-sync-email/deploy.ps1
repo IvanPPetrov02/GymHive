@@ -8,7 +8,9 @@ param(
   [Parameter(Mandatory = $false)]
   [string]$FunctionName = "gymhive-argocd-sync-email",
 
-  [Parameter(Mandatory = $true)]
+  # Deprecated: the function now reads SENDGRID_API_KEY from Secret Manager via --set-secrets.
+  # Kept for backward-compat so existing scripts don't break.
+  [Parameter(Mandatory = $false)]
   [string]$SendGridApiKey,
 
   [Parameter(Mandatory = $true)]
@@ -36,6 +38,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not [string]::IsNullOrWhiteSpace($SendGridApiKey)) {
+  Write-Warning "-SendGridApiKey is no longer used; SENDGRID_API_KEY is bound from Secret Manager (sendgrid-api-key:latest)."
+}
 
 Write-Host "Deploying Cloud Function '$FunctionName' to project '$ProjectId' in region '$Region'..."
 

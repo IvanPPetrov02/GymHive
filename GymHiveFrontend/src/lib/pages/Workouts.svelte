@@ -123,9 +123,6 @@
       const token = await getAccessToken();
       const apiBase = getApiBase();
 
-      console.log('[Workouts] Token:', token ? `${token.substring(0, 20)}...` : 'NULL');
-      console.log('[Workouts] API Base:', apiBase);
-
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
@@ -137,7 +134,6 @@
       const endDate = formatDateForApi(weekEnd);
 
       const url = `${apiBase}/api/workouts/my-workouts?startDate=${startDate}&endDate=${endDate}`;
-      console.log('[Workouts] Fetching:', url);
 
       const response = await fetch(url, {
         headers: {
@@ -146,8 +142,6 @@
         }
       });
 
-      console.log('[Workouts] Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Workouts] Error response:', errorText);
@@ -155,7 +149,6 @@
       }
 
       visits = await response.json();
-      console.log('[Workouts] Received visits:', visits.length);
     } catch (err: any) {
       error = err.message || 'Failed to load gym visits';
       console.error('Error fetching visits:', err);

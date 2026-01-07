@@ -73,8 +73,6 @@
   }
 
   function openCreateModal() {
-    console.log('🟡 Opening create modal');
-    alert('CREATE MODAL OPENING');
     editingGym = null;
     moderators = [];
     newModFirstName = '';
@@ -89,7 +87,6 @@
       email: ''
     };
     showModal = true;
-    console.log('🟡 Modal opened, moderators array:', moderators);
   }
 
   function openEditModal(gym: Gym) {
@@ -110,16 +107,11 @@
   }
 
   function addModerator() {
-    alert('ADD MODERATOR CLICKED');
-    console.log('🔵 ADD MODERATOR FUNCTION CALLED');
     if (!newModFirstName.trim() || !newModLastName.trim()) {
       showToast('error', 'First name and last name are required');
       return;
     }
-    console.log('🔵 Adding moderator:', newModFirstName, newModLastName);
     moderators = [...moderators, { firstName: newModFirstName, lastName: newModLastName }];
-    console.log('🔵 Current moderators list:', moderators);
-    alert(`Moderator added! Total: ${moderators.length}`);
     newModFirstName = '';
     newModLastName = '';
   }
@@ -129,12 +121,6 @@
   }
 
   async function handleSubmit() {
-    alert('SUBMIT CLICKED');
-    console.log('🟢 === SUBMIT STARTED ===');
-    console.log('🟢 Gym form:', gymForm);
-    console.log('🟢 Moderators to create:', moderators);
-    console.log('🟢 Moderators count:', moderators.length);
-    
     if (!gymForm.name.trim() || !gymForm.address.trim()) {
       showToast('error', 'Name and address are required');
       return;
@@ -144,7 +130,6 @@
     try {
       // Save gym without moderators
       const gymData = { ...gymForm };
-      console.log('🟢 Saving gym:', gymData);
       
       let savedGymId: number;
       if (editingGym) {
@@ -156,27 +141,28 @@
         savedGymId = createdGym.id;
         showToast('success', 'Gym created successfully');
       }
-      console.log('🟢 Gym saved successfully with ID:', savedGymId);
 
       // Create moderators separately using the direct endpoint
       if (moderators.length > 0) {
-        console.log('Creating moderators:', moderators);
         let createdCount = 0;
         
         // Get the JWT token properly
         const token = await getAccessToken();
-        console.log('🔑 Token retrieved:', token ? 'YES' : 'NO');
         
         if (!token) {
           showToast('error', 'Authentication token not found. Please log in again.');
           return;
         }
+
+        const apiBase = getApiBase();
+        if (!apiBase) {
+          showToast('error', 'API base URL not configured');
+          return;
+        }
         
         for (const mod of moderators) {
           try {
-            console.log(`Creating moderator: ${mod.firstName} ${mod.lastName} for gym: ${gymForm.name}`);
-            
-            const response = await fetch('http://localhost:5000/api/auth/create-moderator', {
+            const response = await fetch(`${apiBase}/api/auth/create-moderator`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -191,13 +177,10 @@
             });
 
             const result = await response.json();
-            console.log('Response:', response.status, result);
 
             if (!response.ok) {
               throw new Error(result.message || `Failed to create moderator ${mod.firstName} ${mod.lastName}`);
             }
-
-            console.log('Moderator created successfully:', result);
             createdCount++;
           } catch (err: any) {
             console.error('Error creating moderator:', err);
