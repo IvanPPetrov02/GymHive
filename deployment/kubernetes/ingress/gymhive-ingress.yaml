@@ -1,0 +1,46 @@
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: gymhive-frontendconfig
+  namespace: gymhive
+spec:
+  redirectToHttps:
+    enabled: true
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: gymhive-managed-cert-nipio
+  namespace: gymhive
+spec:
+  domains:
+    - gymhive.34.8.235.214.nip.io
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gymhive-ingress
+  namespace: gymhive
+  annotations:
+    networking.gke.io/managed-certificates: gymhive-managed-cert-nipio
+    networking.gke.io/v1beta1.FrontendConfig: gymhive-frontendconfig
+spec:
+  rules:
+    - host: gymhive.34.8.235.214.nip.io
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
