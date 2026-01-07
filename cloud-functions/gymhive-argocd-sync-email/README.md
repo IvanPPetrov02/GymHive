@@ -18,9 +18,11 @@ You will need:
 ## Environment variables
 
 - `SENDGRID_API_KEY` (required)
-- `FROM_EMAIL` (required; must be a verified sender in SendGrid)
-- `TO_EMAIL` (optional; default `ivan.p.petrov02@gmail.com`)
+- `FROM_EMAIL` (required; must be a verified sender in SendGrid, e.g. `info.gymhive@yahoo.com`)
+- `TO_EMAIL` (optional fallback; default `ivan.p.petrov02@gmail.com`)
 - `WEBHOOK_TOKEN` (required; webhook shared secret; checked against `X-GymHive-Webhook-Token`)
+- `ADMIN_EMAILS_URL` (required; e.g. `https://gymhive.<IP>.nip.io/api/auth/admin-emails`)
+- `ADMIN_EMAILS_TOKEN` (required; used as `X-GymHive-AdminEmails-Token` when fetching admin emails)
 
 ## Deploy
 
@@ -31,9 +33,11 @@ $FunctionName = "gymhive-argocd-sync-email"
 
 # You must fill these in:
 $SendGridApiKey = "SG.xxxxx"
-$FromEmail = "ivan.p.petrov02@gmail.com"  # after verifying this sender in SendGrid
+$FromEmail = "info.gymhive@yahoo.com"  # after verifying this sender in SendGrid
 $ToEmail = "ivan.p.petrov02@gmail.com"
 $WebhookToken = "<random-long-secret>"
+$AdminEmailsUrl = "https://gymhive.34.8.235.214.nip.io/api/auth/admin-emails"
+$AdminEmailsToken = "<random-long-secret>"
 
 ./cloud-functions/gymhive-argocd-sync-email/deploy.ps1 `
   -ProjectId $ProjectId `

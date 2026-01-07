@@ -3,9 +3,11 @@
 //
 // Env vars:
 // - SENDGRID_API_KEY (required)
-// - TO_EMAIL (optional, default: ivan.p.petrov02@gmail.com)
+// - TO_EMAIL (optional fallback, default: ivan.p.petrov02@gmail.com)
 // - FROM_EMAIL (required by SendGrid; must be verified sender)
 // - WEBHOOK_TOKEN (required) - shared secret; must match X-GymHive-Webhook-Token header
+// - ADMIN_EMAILS_URL (required) - e.g. https://gymhive.<IP>.nip.io/api/auth/admin-emails
+// - ADMIN_EMAILS_TOKEN (required) - sent as X-GymHive-AdminEmails-Token
 
 const sgMail = require("@sendgrid/mail");
 
@@ -26,6 +28,29 @@ function safeJson(value) {
   } catch {
     return String(value);
   }
+}
+
+async function fetchAdminEmails() {
+  const url = requiredEnv("ADMIN_EMAILS_URL");
+  const token = requiredEnv("ADMIN_EMAILS_TOKEN");
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-GymHive-AdminEmails-Token": token
+    }
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Failed to fetch admin emails (${response.status}): ${text.slice(0, 300)}`);
+  }
+
+  const data = await response.json();
+  const emails = Array.isArray(data?.emails) ? data.emails : [];
+  return emails
+    .map((e) => String(e || "").trim())
+    .filter(Boolean);
 }
 
 function extractArgoSummary(body) {
@@ -99,13 +124,26 @@ exports.argocdSyncEmail = async (req, res) => {
     }
 
     const apiKey = requiredEnv("SENDGRID_API_KEY");
-    const toEmail = getOptionalEnv("TO_EMAIL", "ivan.p.petrov02@gmail.com");
+    const fallbackToEmail = getOptionalEnv("TO_EMAIL", "ivan.p.petrov02@gmail.com");
     const fromEmail = requiredEnv("FROM_EMAIL");
 
     sgMail.setApiKey(apiKey);
 
     const body = req.body || {};
     const summary = extractArgoSummary(body);
+
+    let recipients = [];
+    try {
+      recipients = await fetchAdminEmails();
+    } catch (e) {
+      console.error("Failed to resolve admin emails; falling back to TO_EMAIL", e);
+      recipients = [fallbackToEmail];
+    }
+
+    // Ensure at least one recipient.
+    if (!recipients.length) {
+      recipients = [fallbackToEmail];
+    }
 
     const subject = `[GymHive][ArgoCD] Synced: ${summary.appName} @ ${String(summary.revision).slice(0, 12)}`;
 
@@ -142,7 +180,7 @@ exports.argocdSyncEmail = async (req, res) => {
       .join("\n");
 
     await sgMail.send({
-      to: toEmail,
+      to: recipients,
       from: fromEmail,
       subject,
       text
@@ -151,7 +189,7 @@ exports.argocdSyncEmail = async (req, res) => {
     console.log(
       JSON.stringify({
         status: "sent",
-        toEmail,
+        toEmailCount: recipients.length,
         app: summary.appName,
         revision: summary.revision
       })

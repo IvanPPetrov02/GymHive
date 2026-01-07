@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BLL.DTOs;
@@ -19,17 +20,48 @@ namespace AuthenticationService.Controllers
         private readonly ITokenValidationService _tokenValidationService;
         private readonly ILogger<AuthenticationController> _logger;
         private readonly IEventPublisher _eventPublisher;
+        private readonly IConfiguration _configuration;
 
         public AuthenticationController(
             IUserManager userManager, 
             ITokenValidationService tokenValidationService,
             ILogger<AuthenticationController> logger,
-            IEventPublisher eventPublisher)
+            IEventPublisher eventPublisher,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _tokenValidationService = tokenValidationService;
             _logger = logger;
             _eventPublisher = eventPublisher;
+            _configuration = configuration;
+        }
+
+        [AllowAnonymous]
+        [HttpGet("admin-emails")]
+        public async Task<IActionResult> GetAdminEmails()
+        {
+            var expectedToken = (_configuration["ADMIN_EMAILS_TOKEN"] ?? "").Trim();
+            if (string.IsNullOrEmpty(expectedToken))
+            {
+                _logger.LogError("ADMIN_EMAILS_TOKEN is not configured");
+                return StatusCode(500, new { message = "Admin emails endpoint not configured" });
+            }
+
+            var providedToken = (Request.Headers["X-GymHive-AdminEmails-Token"].ToString() ?? "").Trim();
+            if (string.IsNullOrEmpty(providedToken) || !string.Equals(providedToken, expectedToken, StringComparison.Ordinal))
+            {
+                return Unauthorized(new { message = "Unauthorized" });
+            }
+
+            var users = await _userManager.GetAllUsersAsync();
+            var emails = users
+                .Where(u => u.Role == Role.Admin)
+                .Select(u => u.Email)
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return Ok(new { emails });
         }
 
         [AllowAnonymous]

@@ -6,8 +6,10 @@ using BLL.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Generic;
 using System.Security.Claims;
 using Xunit;
 using GymHive.Messaging.Interfaces;
@@ -21,6 +23,7 @@ public class AuthenticationControllerTests
     private readonly Mock<ILogger<AuthenticationController>> _mockLogger;
     private readonly Mock<IEventPublisher> _mockEventPublisher;
     private readonly AuthenticationController _controller;
+    private readonly IConfiguration _configuration;
 
     public AuthenticationControllerTests()
     {
@@ -28,12 +31,20 @@ public class AuthenticationControllerTests
         _mockTokenValidationService = new Mock<ITokenValidationService>();
         _mockLogger = new Mock<ILogger<AuthenticationController>>();
         _mockEventPublisher = new Mock<IEventPublisher>();
+
+        _configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ADMIN_EMAILS_TOKEN"] = "test-token"
+            })
+            .Build();
         
         _controller = new AuthenticationController(
             _mockUserManager.Object,
             _mockTokenValidationService.Object,
             _mockLogger.Object,
-            _mockEventPublisher.Object);
+            _mockEventPublisher.Object,
+            _configuration);
         
         // Setup HttpContext for cookie tests
         _controller.ControllerContext = new ControllerContext

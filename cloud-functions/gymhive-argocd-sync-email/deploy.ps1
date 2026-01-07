@@ -18,6 +18,12 @@ param(
   [string]$ToEmail = "ivan.p.petrov02@gmail.com",
 
   [Parameter(Mandatory = $true)]
+  [string]$AdminEmailsUrl,
+
+  [Parameter(Mandatory = $true)]
+  [string]$AdminEmailsToken,
+
+  [Parameter(Mandatory = $true)]
   [string]$WebhookToken
 )
 
@@ -35,7 +41,7 @@ gcloud functions deploy $FunctionName `
   --entry-point "argocdSyncEmail" `
   --trigger-http `
   --allow-unauthenticated `
-  --set-env-vars "SENDGRID_API_KEY=$SendGridApiKey,FROM_EMAIL=$FromEmail,TO_EMAIL=$ToEmail,WEBHOOK_TOKEN=$WebhookToken"
+  --set-env-vars "SENDGRID_API_KEY=$SendGridApiKey,FROM_EMAIL=$FromEmail,TO_EMAIL=$ToEmail,WEBHOOK_TOKEN=$WebhookToken,ADMIN_EMAILS_URL=$AdminEmailsUrl,ADMIN_EMAILS_TOKEN=$AdminEmailsToken"
 
 Write-Host "Done. Function URL:" 
 $uri = gcloud functions describe $FunctionName --gen2 --region $Region --format="value(serviceConfig.uri)"

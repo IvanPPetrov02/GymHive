@@ -64,6 +64,11 @@ spec:
             secretKeyRef:
               name: gymhive-password-pepper
               key: PASSWORD_PEPPER
+        - name: ADMIN_EMAILS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gymhive-admin-emails-token
+              key: ADMIN_EMAILS_TOKEN
         - name: RabbitMQ__HostName
           valueFrom:
             configMapKeyRef:
