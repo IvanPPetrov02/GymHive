@@ -1,0 +1,12 @@
+{
+  "name": "gymhive-argocd-sync-email",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.5"
+  }
+}
