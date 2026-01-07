@@ -54,8 +54,8 @@ data:
   service.webhook.gymhive-email: |
     url: $FunctionUrl
     headers:
-    - name: X-GymHive-Webhook-Token
-      value: '{{.secrets.gymhiveWebhookToken}}'
+      - name: X-GymHive-Webhook-Token
+        value: '{{.secrets.gymhiveWebhookToken}}'
     insecureSkipVerify: false
 
   template.gymhive-sync-email: |
@@ -73,8 +73,8 @@ data:
     - description: GymHive: ArgoCD sync succeeded
       oncePer: app.status.operationState.syncResult.revision
       send:
-      - gymhive-sync-email
-      when: app.status.operationState.phase in ['Succeeded']
+        - gymhive-sync-email
+      when: "app.status.operationState.phase in ['Succeeded']"
 "@
 
 $cmYaml | kubectl apply -f - | Out-Null
