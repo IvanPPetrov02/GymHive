@@ -33,7 +33,7 @@ kubectl -n $NotificationsNamespace scale deployment argocd-notifications-control
 
 # 2) Store webhook token in argocd-notifications-secret
 $tokenB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($WebhookToken))
-$secretPatch = "{\"data\":{\"gymhiveWebhookToken\":\"$tokenB64\"}}"
+$secretPatch = @{ data = @{ gymhiveWebhookToken = $tokenB64 } } | ConvertTo-Json -Compress
 kubectl -n $NotificationsNamespace patch secret argocd-notifications-secret --type merge -p $secretPatch | Out-Null
 
 # 3) Create/update argocd-notifications-cm with webhook service + trigger + template
