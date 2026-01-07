@@ -23,6 +23,8 @@ You will need:
 - `WEBHOOK_TOKEN` (required; webhook shared secret; checked against `X-GymHive-Webhook-Token`)
 - `ADMIN_EMAILS_URL` (required; e.g. `https://gymhive.<IP>.nip.io/api/auth/admin-emails`)
 - `ADMIN_EMAILS_TOKEN` (required; used as `X-GymHive-AdminEmails-Token` when fetching admin emails)
+- `SENDGRID_TEMPLATE_ID` (optional; SendGrid Dynamic Template ID for a nicer email layout)
+- `INCLUDE_RAW_PAYLOAD` (optional; default `false`; set `true` to include the raw JSON payload)
 
 ## Deploy
 

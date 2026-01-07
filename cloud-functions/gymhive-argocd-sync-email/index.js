@@ -8,6 +8,8 @@
 // - WEBHOOK_TOKEN (required) - shared secret; must match X-GymHive-Webhook-Token header
 // - ADMIN_EMAILS_URL (required) - e.g. https://gymhive.<IP>.nip.io/api/auth/admin-emails
 // - ADMIN_EMAILS_TOKEN (required) - sent as X-GymHive-AdminEmails-Token
+// - SENDGRID_TEMPLATE_ID (optional) - SendGrid Dynamic Template ID (uses dynamicTemplateData)
+// - INCLUDE_RAW_PAYLOAD (optional, default false) - include raw JSON payload in email
 
 const sgMail = require("@sendgrid/mail");
 
@@ -28,6 +30,104 @@ function safeJson(value) {
   } catch {
     return String(value);
   }
+}
+
+function getOptionalBoolEnv(name, fallback) {
+  const raw = String(process.env[name] || "").trim().toLowerCase();
+  if (!raw) return fallback;
+  return raw === "true" || raw === "1" || raw === "yes" || raw === "y";
+}
+
+function normalizeResources(resources) {
+  const list = Array.isArray(resources) ? resources : [];
+  return list.slice(0, 50).map((r) => {
+    const kind = String(r?.kind || "?").trim();
+    const name = String(r?.name || "?").trim();
+    const namespace = String(r?.namespace || "").trim();
+    const status = String(r?.status || r?.syncStatus || "").trim();
+    return { kind, name, namespace, status };
+  });
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildEmailContent(summary, body) {
+  const resources = normalizeResources(summary.resources);
+  const revisionShort = String(summary.revision || "").slice(0, 12);
+  const includeRaw = getOptionalBoolEnv("INCLUDE_RAW_PAYLOAD", false);
+
+  const lines = [];
+  lines.push("ArgoCD sync update");
+  lines.push("");
+  lines.push(`App: ${summary.appName}`);
+  lines.push(`Revision: ${summary.revision}`);
+  lines.push(`Repo: ${summary.repoURL}`);
+  if (summary.syncStatus) lines.push(`Sync: ${summary.syncStatus}`);
+  if (summary.healthStatus) lines.push(`Health: ${summary.healthStatus}`);
+  if (summary.phase) lines.push(`Phase: ${summary.phase}`);
+  lines.push("");
+  if (resources.length) {
+    lines.push("Changed resources:");
+    for (const r of resources) {
+      const ns = r.namespace ? ` (${r.namespace})` : "";
+      const status = r.status ? ` => ${r.status}` : "";
+      lines.push(`- ${r.kind}/${r.name}${ns}${status}`.trim());
+    }
+  }
+  if (includeRaw) {
+    lines.push("");
+    lines.push("Raw payload (truncated):");
+    lines.push(safeJson(body).slice(0, 8000));
+  }
+
+  const htmlResources = resources.length
+    ? `
+      <h3>Changed resources</h3>
+      <ul>
+        ${resources
+          .map((r) => {
+            const ns = r.namespace ? ` <span>(${escapeHtml(r.namespace)})</span>` : "";
+            const st = r.status ? ` <strong>&rarr; ${escapeHtml(r.status)}</strong>` : "";
+            return `<li><span>${escapeHtml(r.kind)}/${escapeHtml(r.name)}</span>${ns}${st}</li>`;
+          })
+          .join("\n")}
+      </ul>`
+    : "";
+
+  const htmlRaw = includeRaw
+    ? `
+      <h3>Raw payload (truncated)</h3>
+      <pre style="white-space: pre-wrap;">${escapeHtml(safeJson(body).slice(0, 8000))}</pre>`
+    : "";
+
+  const html = `
+    <div>
+      <h2>ArgoCD sync update</h2>
+      <p><strong>App:</strong> ${escapeHtml(summary.appName)}</p>
+      <p><strong>Revision:</strong> ${escapeHtml(summary.revision)} <span style="opacity:0.7">(${escapeHtml(revisionShort)})</span></p>
+      <p><strong>Repo:</strong> ${escapeHtml(summary.repoURL)}</p>
+      ${summary.syncStatus ? `<p><strong>Sync:</strong> ${escapeHtml(summary.syncStatus)}</p>` : ""}
+      ${summary.healthStatus ? `<p><strong>Health:</strong> ${escapeHtml(summary.healthStatus)}</p>` : ""}
+      ${summary.phase ? `<p><strong>Phase:</strong> ${escapeHtml(summary.phase)}</p>` : ""}
+      ${htmlResources}
+      ${htmlRaw}
+    </div>
+  `.trim();
+
+  return {
+    resources,
+    revisionShort,
+    includeRaw,
+    text: lines.filter(Boolean).join("\n"),
+    html
+  };
 }
 
 async function fetchAdminEmails() {
@@ -147,44 +247,36 @@ exports.argocdSyncEmail = async (req, res) => {
 
     const subject = `[GymHive][ArgoCD] Synced: ${summary.appName} @ ${String(summary.revision).slice(0, 12)}`;
 
-    const resourcesLines = Array.isArray(summary.resources)
-      ? summary.resources
-          .slice(0, 50)
-          .map((r) => {
-            const kind = r?.kind || "?";
-            const name = r?.name || "?";
-            const namespace = r?.namespace || "";
-            const status = r?.status || r?.syncStatus || "";
-            const ns = namespace ? ` (${namespace})` : "";
-            return `- ${kind}/${name}${ns} ${status ? `=> ${status}` : ""}`.trim();
-          })
-          .join("\n")
-      : "";
+    const templateId = (process.env.SENDGRID_TEMPLATE_ID || "").trim();
+    const content = buildEmailContent(summary, body);
 
-    const text = [
-      `ArgoCD sync event received`,
-      ``,
-      `App: ${summary.appName}`,
-      `Revision: ${summary.revision}`,
-      `Repo: ${summary.repoURL}`,
-      summary.syncStatus ? `Sync: ${summary.syncStatus}` : null,
-      summary.healthStatus ? `Health: ${summary.healthStatus}` : null,
-      summary.phase ? `Phase: ${summary.phase}` : null,
-      ``,
-      resourcesLines ? `Resources:\n${resourcesLines}` : null,
-      ``,
-      `Raw payload (truncated):`,
-      safeJson(body).slice(0, 8000)
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    await sgMail.send({
-      to: recipients,
-      from: fromEmail,
-      subject,
-      text
-    });
+    if (templateId) {
+      await sgMail.send({
+        to: recipients,
+        from: fromEmail,
+        subject,
+        templateId,
+        dynamicTemplateData: {
+          appName: summary.appName,
+          revision: summary.revision,
+          revisionShort: content.revisionShort,
+          repoURL: summary.repoURL,
+          syncStatus: summary.syncStatus || "",
+          healthStatus: summary.healthStatus || "",
+          phase: summary.phase || "",
+          changedResources: content.resources,
+          changedCount: content.resources.length
+        }
+      });
+    } else {
+      await sgMail.send({
+        to: recipients,
+        from: fromEmail,
+        subject,
+        text: content.text,
+        html: content.html
+      });
+    }
 
     console.log(
       JSON.stringify({

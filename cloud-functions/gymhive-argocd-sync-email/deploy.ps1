@@ -25,6 +25,14 @@ param(
 
   [Parameter(Mandatory = $true)]
   [string]$WebhookToken
+
+  ,
+  [Parameter(Mandatory = $false)]
+  [string]$SendGridTemplateId = ""
+
+  ,
+  [Parameter(Mandatory = $false)]
+  [string]$IncludeRawPayload = "false"
 )
 
 $ErrorActionPreference = "Stop"
@@ -32,6 +40,21 @@ $ErrorActionPreference = "Stop"
 Write-Host "Deploying Cloud Function '$FunctionName' to project '$ProjectId' in region '$Region'..."
 
 gcloud config set project $ProjectId
+
+$envVars = @(
+  "FROM_EMAIL=$FromEmail",
+  "TO_EMAIL=$ToEmail",
+  "WEBHOOK_TOKEN=$WebhookToken",
+  "ADMIN_EMAILS_URL=$AdminEmailsUrl",
+  "ADMIN_EMAILS_TOKEN=$AdminEmailsToken",
+  "INCLUDE_RAW_PAYLOAD=$IncludeRawPayload"
+)
+
+if (-not [string]::IsNullOrWhiteSpace($SendGridTemplateId)) {
+  $envVars += "SENDGRID_TEMPLATE_ID=$SendGridTemplateId"
+}
+
+$envVarsArg = ($envVars -join ",")
 
 gcloud functions deploy $FunctionName `
   --gen2 `
@@ -41,7 +64,7 @@ gcloud functions deploy $FunctionName `
   --entry-point "argocdSyncEmail" `
   --trigger-http `
   --allow-unauthenticated `
-  --set-env-vars "FROM_EMAIL=$FromEmail,TO_EMAIL=$ToEmail,WEBHOOK_TOKEN=$WebhookToken,ADMIN_EMAILS_URL=$AdminEmailsUrl,ADMIN_EMAILS_TOKEN=$AdminEmailsToken" `
+  --set-env-vars $envVarsArg `
   --set-secrets "SENDGRID_API_KEY=sendgrid-api-key:latest"
 
 Write-Host "Done. Function URL:" 
