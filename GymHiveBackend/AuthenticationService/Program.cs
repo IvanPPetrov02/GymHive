@@ -14,6 +14,9 @@ using System.Text;
 using Prometheus;
 using GymHive.Messaging.Interfaces;
 using GymHive.Messaging.RabbitMQ;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using System.Data.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,17 +131,98 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        // Use EnsureCreated for initial setup since migrations are incomplete
-        dbContext.Database.EnsureCreated();
+        await EnsureMigrationsBaselinedAsync(dbContext, logger);
+        dbContext.Database.Migrate();
+        logger.LogInformation("Database migrations applied successfully");
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while creating the database.");
+        logger.LogError(ex, "An error occurred while migrating the database.");
         throw;
     }
+}
+
+static async Task EnsureMigrationsBaselinedAsync(ApplicationDbContext dbContext, ILogger logger)
+{
+    var historyRepository = dbContext.GetService<IHistoryRepository>();
+
+    await using var connection = dbContext.Database.GetDbConnection();
+    await connection.OpenAsync();
+
+    var usersTableExists = await TableExistsAsync(connection, "Users");
+    if (!usersTableExists)
+    {
+        return;
+    }
+
+    if (!historyRepository.Exists())
+    {
+        logger.LogInformation("EF migrations history table is missing but Users table exists. Creating history table to baseline migrations.");
+        dbContext.Database.ExecuteSqlRaw(historyRepository.GetCreateIfNotExistsScript());
+    }
+
+    // If Users exists but there are no applied migrations recorded, we likely previously used EnsureCreated().
+    // Baseline the migration history to avoid InitialCreate failing due to existing tables.
+    var appliedMigrations = (await dbContext.Database.GetAppliedMigrationsAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    if (appliedMigrations.Count > 0)
+    {
+        return;
+    }
+
+    logger.LogInformation("No applied migrations recorded. Baselining migration history for existing schema.");
+
+    const string productVersion = "8.0.11";
+    InsertMigrationHistory(dbContext, "20251207000000_InitialCreate", productVersion);
+
+    var gymIdExists = await ColumnExistsAsync(connection, "Users", "GymId");
+    if (gymIdExists)
+    {
+        InsertMigrationHistory(dbContext, "20251207201316_AddGymIdToUser", productVersion);
+    }
+}
+
+static void InsertMigrationHistory(ApplicationDbContext dbContext, string migrationId, string productVersion)
+{
+    dbContext.Database.ExecuteSqlRaw(
+        "INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`) VALUES ({0}, {1});",
+        migrationId,
+        productVersion);
+}
+
+static async Task<bool> TableExistsAsync(DbConnection connection, string tableName)
+{
+    await using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = @tableName";
+
+    var parameter = command.CreateParameter();
+    parameter.ParameterName = "@tableName";
+    parameter.Value = tableName;
+    command.Parameters.Add(parameter);
+
+    var result = await command.ExecuteScalarAsync();
+    return Convert.ToInt32(result) > 0;
+}
+
+static async Task<bool> ColumnExistsAsync(DbConnection connection, string tableName, string columnName)
+{
+    await using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = @tableName AND column_name = @columnName";
+
+    var tableParam = command.CreateParameter();
+    tableParam.ParameterName = "@tableName";
+    tableParam.Value = tableName;
+    command.Parameters.Add(tableParam);
+
+    var columnParam = command.CreateParameter();
+    columnParam.ParameterName = "@columnName";
+    columnParam.Value = columnName;
+    command.Parameters.Add(columnParam);
+
+    var result = await command.ExecuteScalarAsync();
+    return Convert.ToInt32(result) > 0;
 }
 
 // Configure the HTTP request pipeline.
