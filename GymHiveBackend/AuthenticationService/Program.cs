@@ -17,6 +17,7 @@ using GymHive.Messaging.RabbitMQ;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Data.Common;
+using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -149,38 +150,52 @@ static async Task EnsureMigrationsBaselinedAsync(ApplicationDbContext dbContext,
 {
     var historyRepository = dbContext.GetService<IHistoryRepository>();
 
-    await using var connection = dbContext.Database.GetDbConnection();
-    await connection.OpenAsync();
-
-    var usersTableExists = await TableExistsAsync(connection, "Users");
-    if (!usersTableExists)
+    var connection = dbContext.Database.GetDbConnection();
+    var shouldCloseConnection = connection.State != ConnectionState.Open;
+    if (shouldCloseConnection)
     {
-        return;
+        await connection.OpenAsync();
     }
 
-    if (!historyRepository.Exists())
+    try
     {
-        logger.LogInformation("EF migrations history table is missing but Users table exists. Creating history table to baseline migrations.");
-        dbContext.Database.ExecuteSqlRaw(historyRepository.GetCreateIfNotExistsScript());
+        var usersTableExists = await TableExistsAsync(connection, "Users");
+        if (!usersTableExists)
+        {
+            return;
+        }
+
+        if (!historyRepository.Exists())
+        {
+            logger.LogInformation("EF migrations history table is missing but Users table exists. Creating history table to baseline migrations.");
+            dbContext.Database.ExecuteSqlRaw(historyRepository.GetCreateIfNotExistsScript());
+        }
+
+        // If Users exists but there are no applied migrations recorded, we likely previously used EnsureCreated().
+        // Baseline the migration history to avoid InitialCreate failing due to existing tables.
+        var appliedMigrations = (await dbContext.Database.GetAppliedMigrationsAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (appliedMigrations.Count > 0)
+        {
+            return;
+        }
+
+        logger.LogInformation("No applied migrations recorded. Baselining migration history for existing schema.");
+
+        const string productVersion = "8.0.11";
+        InsertMigrationHistory(dbContext, "20251207000000_InitialCreate", productVersion);
+
+        var gymIdExists = await ColumnExistsAsync(connection, "Users", "GymId");
+        if (gymIdExists)
+        {
+            InsertMigrationHistory(dbContext, "20251207201316_AddGymIdToUser", productVersion);
+        }
     }
-
-    // If Users exists but there are no applied migrations recorded, we likely previously used EnsureCreated().
-    // Baseline the migration history to avoid InitialCreate failing due to existing tables.
-    var appliedMigrations = (await dbContext.Database.GetAppliedMigrationsAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-    if (appliedMigrations.Count > 0)
+    finally
     {
-        return;
-    }
-
-    logger.LogInformation("No applied migrations recorded. Baselining migration history for existing schema.");
-
-    const string productVersion = "8.0.11";
-    InsertMigrationHistory(dbContext, "20251207000000_InitialCreate", productVersion);
-
-    var gymIdExists = await ColumnExistsAsync(connection, "Users", "GymId");
-    if (gymIdExists)
-    {
-        InsertMigrationHistory(dbContext, "20251207201316_AddGymIdToUser", productVersion);
+        if (shouldCloseConnection)
+        {
+            await connection.CloseAsync();
+        }
     }
 }
 
