@@ -9,5 +9,7 @@ data:
       // Use the same host the frontend is loaded from:
       // e.g. http://35.195.254.13
       API_GATEWAY_URL: window.location.origin,
-      ENVIRONMENT: 'production'
+      ENVIRONMENT: 'production',
+      // Useful for debugging deployments (also triggers ArgoCD sync notifications)
+      RELEASE: '2026-01-08-email-test'
     };

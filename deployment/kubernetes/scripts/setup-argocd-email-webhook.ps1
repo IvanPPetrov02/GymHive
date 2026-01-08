@@ -55,7 +55,7 @@ data:
     url: $FunctionUrl
     headers:
       - name: X-GymHive-Webhook-Token
-        value: '{{.secrets.gymhiveWebhookToken}}'
+        value: $gymhiveWebhookToken
     insecureSkipVerify: false
 
   template.gymhive-sync-email: |
@@ -70,11 +70,7 @@ data:
           }
 
   trigger.on-sync-succeeded: |
-    - description: GymHive: ArgoCD sync succeeded
-      oncePer: app.status.operationState.syncResult.revision
-      send:
-        - gymhive-sync-email
-      when: "app.status.operationState.phase in ['Succeeded']"
+    [{"description":"GymHive: ArgoCD sync succeeded","send":["gymhive-sync-email"],"when":"app.status.operationState.phase == 'Succeeded'"}]
 "@
 
 $cmYaml | kubectl apply -f - | Out-Null
@@ -85,8 +81,8 @@ kubectl -n $ApplicationNamespace annotate application $ApplicationName $annotati
 
 Write-Host "Done. Webhook token was generated/used but not printed."
 if ($generatedToken) {
-  Write-Host "Webhook token (save this somewhere safe): $WebhookToken"
+  Write-Host "Webhook token was generated and stored in the cluster secret."
 } else {
-  Write-Host "Webhook token was provided via -WebhookToken."
+  Write-Host "Webhook token was provided and stored in the cluster secret."
 }
 Write-Host "Next: deploy the Cloud Function with WEBHOOK_TOKEN set to the same value."

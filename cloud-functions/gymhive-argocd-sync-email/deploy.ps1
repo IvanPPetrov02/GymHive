@@ -30,6 +30,10 @@ param(
 
   ,
   [Parameter(Mandatory = $false)]
+  [string]$DebugAuth = "false"
+
+  ,
+  [Parameter(Mandatory = $false)]
   [string]$SendGridTemplateId = ""
 
   ,
@@ -45,7 +49,7 @@ if (-not [string]::IsNullOrWhiteSpace($SendGridApiKey)) {
 
 Write-Host "Deploying Cloud Function '$FunctionName' to project '$ProjectId' in region '$Region'..."
 
-gcloud config set project $ProjectId
+gcloud.cmd config set project $ProjectId
 
 $envVars = @(
   "FROM_EMAIL=$FromEmail",
@@ -53,7 +57,8 @@ $envVars = @(
   "WEBHOOK_TOKEN=$WebhookToken",
   "ADMIN_EMAILS_URL=$AdminEmailsUrl",
   "ADMIN_EMAILS_TOKEN=$AdminEmailsToken",
-  "INCLUDE_RAW_PAYLOAD=$IncludeRawPayload"
+  "INCLUDE_RAW_PAYLOAD=$IncludeRawPayload",
+  "DEBUG_AUTH=$DebugAuth"
 )
 
 if (-not [string]::IsNullOrWhiteSpace($SendGridTemplateId)) {
@@ -62,17 +67,40 @@ if (-not [string]::IsNullOrWhiteSpace($SendGridTemplateId)) {
 
 $envVarsArg = ($envVars -join ",")
 
-gcloud functions deploy $FunctionName `
-  --gen2 `
-  --region $Region `
-  --runtime nodejs20 `
-  --source "./cloud-functions/gymhive-argocd-sync-email" `
-  --entry-point "argocdSyncEmail" `
-  --trigger-http `
-  --allow-unauthenticated `
-  --set-env-vars $envVarsArg `
-  --set-secrets "SENDGRID_API_KEY=sendgrid-api-key:latest"
+"" | Out-Null
+$args = @(
+  "functions", "deploy", $FunctionName,
+  "--quiet",
+  "--gen2",
+  "--region", $Region,
+  "--runtime", "nodejs20",
+  "--source", "./cloud-functions/gymhive-argocd-sync-email",
+  "--entry-point", "argocdSyncEmail",
+  "--trigger-http",
+  "--allow-unauthenticated",
+  "--set-env-vars", $envVarsArg,
+  "--set-secrets", "SENDGRID_API_KEY=sendgrid-api-key:latest"
+)
+
+$stdoutFile = [System.IO.Path]::GetTempFileName()
+$stderrFile = [System.IO.Path]::GetTempFileName()
+
+try {
+  $proc = Start-Process -FilePath "gcloud.cmd" -ArgumentList $args -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
+  $deployOutput = (Get-Content -Path $stdoutFile -Raw) + "`n" + (Get-Content -Path $stderrFile -Raw)
+
+  if ($proc.ExitCode -ne 0) {
+    $safe = $deployOutput
+    if (-not [string]::IsNullOrEmpty($WebhookToken)) { $safe = $safe.Replace($WebhookToken, "***") }
+    if (-not [string]::IsNullOrEmpty($AdminEmailsToken)) { $safe = $safe.Replace($AdminEmailsToken, "***") }
+    Write-Host $safe
+    throw "Cloud Function deploy failed (output redacted)."
+  }
+}
+finally {
+  Remove-Item -Path $stdoutFile, $stderrFile -Force -ErrorAction SilentlyContinue
+}
 
 Write-Host "Done. Function URL:" 
-$uri = gcloud functions describe $FunctionName --gen2 --region $Region --format="value(serviceConfig.uri)"
+$uri = gcloud.cmd functions describe $FunctionName --gen2 --region $Region --format="value(serviceConfig.uri)"
 Write-Host $uri
