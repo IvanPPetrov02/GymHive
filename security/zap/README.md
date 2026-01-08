@@ -15,6 +15,24 @@ From repo root:
 ./security/zap/run-zap-baseline.ps1
 ```
 
+## API scan
+
+Runs an API-focused scan. It will try to auto-detect an OpenAPI spec at common URLs like `/swagger/v1/swagger.json` and `/openapi.json` on your HTTPS ingress. If no spec is found, it falls back to scanning `/api/` directly.
+
+```powershell
+./security/zap/run-zap-api.ps1
+```
+
+Optional:
+
+```powershell
+# Explicitly provide OpenAPI URL
+./security/zap/run-zap-api.ps1 -OpenApiUrl "https://gymhive.34.8.235.214.nip.io/swagger/v1/swagger.json"
+
+# Explicitly provide API base URL
+./security/zap/run-zap-api.ps1 -TargetUrl "https://gymhive.34.8.235.214.nip.io/api/"
+```
+
 Optional:
 
 ```powershell
