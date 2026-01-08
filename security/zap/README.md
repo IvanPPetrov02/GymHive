@@ -111,3 +111,8 @@ These were the results from running the scripts against your current ingress hos
 ### Where to see full details
 
 Open the generated HTML reports in `security/zap/results/` for the full list of alerts and affected URLs.
+
+## TODO (later)
+
+- Add an "Interpretation / remediation" section mapping each common header warning (CSP, clickjacking protection, `X-Content-Type-Options`, `Permissions-Policy`, `Server` header) to where it should be fixed in this repo (Ingress/NGINX vs API gateway vs service).
+- Optionally add an authenticated ZAP run (login flow / token) to improve API coverage beyond publicly reachable endpoints.
