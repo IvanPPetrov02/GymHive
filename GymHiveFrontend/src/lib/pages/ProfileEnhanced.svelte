@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { user, isAuthenticated, isLoading } from '../auth';
+  import { user, isAuthenticated, isLoading, logout } from '../auth';
   import { requireAuth } from '../auth/auth';
   import { membershipsApi, type Membership } from '../services/memberships';
   import { showToast } from '../components/ui/Toast.svelte';
   import LoadingSpinner from '../components/ui/LoadingSpinner.svelte';
   import Modal from '../components/ui/Modal.svelte';
   import ConfirmDialog from '../components/ui/ConfirmDialog.svelte';
-  import { updateUser, changePassword, type UserUpdateData, type PasswordChangeData } from '../auth/authService';
+  import { updateUser, changePassword, deleteUser, type UserUpdateData, type PasswordChangeData } from '../auth/authService';
 
   let activeTab: 'profile' | 'edit' | 'password' | 'memberships' = 'profile';
   
@@ -37,6 +37,10 @@
   // Cancel membership
   let cancelMembershipId: number | null = null;
   let isCancelling = false;
+
+  // Delete account
+  let isDeleteAccountOpen = false;
+  let isDeletingAccount = false;
 
   onMount(() => {
     requireAuth('#/profile');
@@ -152,6 +156,24 @@
     } finally {
       isCancelling = false;
       cancelMembershipId = null;
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!$user) return;
+
+    isDeletingAccount = true;
+    try {
+      await deleteUser($user.uuid);
+      showToast('success', 'Your account deletion request was accepted. Logging you out…');
+      isDeleteAccountOpen = false;
+      logout();
+    } catch (e: any) {
+      console.error('Failed to delete account:', e);
+      showToast('error', e?.message || 'Failed to delete account');
+    } finally {
+      isDeletingAccount = false;
+      isDeleteAccountOpen = false;
     }
   }
 
@@ -280,6 +302,25 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
                 <div class="p-3 bg-gray-50 rounded-lg text-gray-900">{formatDate($user.createdAt)}</div>
+              </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="pt-6 border-t border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Danger Zone</h3>
+              <p class="text-sm text-gray-600 mt-1">
+                Delete your account permanently. This triggers the backend deletion SAGA (RabbitMQ) to clean up your data across services.
+              </p>
+
+              <div class="mt-4">
+                <button
+                  type="button"
+                  class="bg-red-600 text-white hover:bg-red-700 transition-colors px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+                  on:click={() => (isDeleteAccountOpen = true)}
+                  disabled={isDeletingAccount}
+                >
+                  Delete My Account
+                </button>
               </div>
             </div>
           </div>
@@ -535,6 +576,18 @@
     isLoading={isCancelling}
     on:confirm={handleCancelMembership}
     on:cancel={() => cancelMembershipId = null}
+  />
+
+  <!-- Delete Account Confirmation -->
+  <ConfirmDialog
+    isOpen={isDeleteAccountOpen}
+    title="Delete your account?"
+    message="Are you sure you want to permanently delete your account? This will start a deletion workflow to remove your data across services and cannot be undone."
+    confirmText="Delete Account"
+    confirmClass="bg-red-600 text-white hover:bg-red-700 transition-colors"
+    isLoading={isDeletingAccount}
+    on:confirm={handleDeleteAccount}
+    on:cancel={() => (isDeleteAccountOpen = false)}
   />
 {/if}
 

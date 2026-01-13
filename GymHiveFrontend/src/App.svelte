@@ -40,6 +40,16 @@
     return true;
   }
 
+  // Guest-only pages (Home/Login/Register): authenticated users should land on Feed
+  async function guestOnlyGuard(detail: any) {
+    const isAuthed = await ensureAuthenticated();
+    if (isAuthed) {
+      window.location.hash = '#/feed';
+      return false;
+    }
+    return true;
+  }
+
   async function adminGuard(detail: any) {
     const isAuthed = await ensureAuthenticated();
     if (!isAuthed) {
@@ -48,7 +58,7 @@
     }
     
     if (!requireRole('Admin')) {
-      window.location.hash = '#/';
+      window.location.hash = '#/feed';
       return false;
     }
     return true;
@@ -62,20 +72,29 @@
     }
     
     if (!requireRole(['Moderator', 'Admin'])) {
-      window.location.hash = '#/';
+      window.location.hash = '#/feed';
       return false;
     }
     return true;
   }
 
   const routes = {
-    '/': Home,
+    '/': wrap({
+      component: Home,
+      conditions: [guestOnlyGuard]
+    }),
     '/feed': wrap({
       component: Feed,
       conditions: [authGuard]
     }),
-    '/login': LoginRegister,
-    '/register': LoginRegister,
+    '/login': wrap({
+      component: LoginRegister,
+      conditions: [guestOnlyGuard]
+    }),
+    '/register': wrap({
+      component: LoginRegister,
+      conditions: [guestOnlyGuard]
+    }),
     '/privacy': Privacy,
     '/terms': Terms,
     '/gyms': wrap({
@@ -132,4 +151,3 @@
   </main>
   <Toast />
 </div>
-// test comment

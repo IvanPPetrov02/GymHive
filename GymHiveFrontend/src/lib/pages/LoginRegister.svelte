@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { authError, isAuthenticated, user, isLoading } from '../auth/auth';
   import { login, register, logout } from '../auth';
-  import { push } from 'svelte-spa-router';
+  import { push, replace } from 'svelte-spa-router';
 
   let mode: 'login' | 'register' = 'login';
   let email = '';
@@ -10,6 +11,13 @@
   let surname = '';
   let submitting = false;
   let localError = '';
+
+  onMount(() => {
+    // Logged-in users should not use Login/Register
+    if ($isAuthenticated) {
+      replace('/feed');
+    }
+  });
 
   async function handleLogin() {
     if (!email || !password) {
@@ -113,7 +121,7 @@
             You're signed in! Explore gyms, track workouts, and connect with the fitness community.
           </div>
           <div class="mt-auto flex flex-col gap-4">
-            <a href="#/" class="btn-primary w-full text-center py-4 rounded-xl shadow">Go to Home</a>
+            <a href="#/feed" class="btn-primary w-full text-center py-4 rounded-xl shadow">Go to Feed</a>
             <a href="#/gyms" class="w-full py-4 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white transition shadow text-center">Find Gyms</a>
             <button on:click={() => logout()} class="w-full py-4 rounded-xl font-semibold bg-red-600 hover:bg-red-700 text-white transition shadow">Sign Out</button>
           </div>

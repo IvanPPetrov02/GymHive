@@ -1,141 +1,60 @@
-# 🎯 SonarQube Setup Complete!
+# SonarQube (local) — setup and analysis
 
-## ✅ What's Been Created
+This repo includes a local SonarQube setup (Docker Compose) and scripts to run analysis.
 
-1. **Docker Compose Configuration** (`docker-compose-sonar.yml`)
-   - SonarQube Community Edition
-   - PostgreSQL database
-   - Persistent volumes for data
+## What was done
 
-2. **Analysis Scripts**
-   - `start-sonarqube.ps1` - Start SonarQube server
-   - `run-sonarqube-analysis.ps1` - Analyze entire project
+- Added `docker-compose-sonar.yml` (SonarQube + PostgreSQL)
+- Added scripts:
+  - `start-sonarqube.ps1`
+  - `run-sonarqube-analysis.ps1`
+- Added configs:
+  - `sonar-project.properties`
+  - `GymHiveFrontend/sonar-project.properties`
 
-3. **Configuration Files**
-   - `sonar-project.properties` - Main project config
-   - `GymHiveFrontend/sonar-project.properties` - Frontend config
+## Start SonarQube
 
-4. **Documentation** (`SONARQUBE-SETUP.md`)
-   - Complete setup guide
-   - Troubleshooting tips
-   - CI/CD integration info
+```powershell
+./start-sonarqube.ps1
+```
 
-## 🚀 Next Steps
+Check readiness:
 
-### 1. Wait for SonarQube to Start (2-3 minutes)
-
-Check if ready:
 ```powershell
 docker logs gymhive-sonarqube
 ```
 
-Look for: "SonarQube is operational"
+Open:
 
-### 2. Access SonarQube
+- `http://localhost:9000`
 
-Open: **http://localhost:9000**
+Default login is typically `admin` / `admin` (then change password).
 
-- Username: `admin`
-- Password: `admin`
-- Change password when prompted
+## Create a token
 
-### 3. Generate Access Token (Recommended)
+In the UI:
 
-1. Login to SonarQube
-2. Click your avatar (top right) → My Account
-3. Go to: **Security** tab
-4. Click **Generate Tokens**
-5. Name: "GymHive Analysis"
-6. Type: "User Token"  
-7. Click **Generate** and copy the token
+- Profile → My Account → Security → Generate Token
 
-Set environment variable:
-```powershell
-$env:SONAR_TOKEN = "paste-your-token-here"
-```
-
-### 4. Run Analysis
+Set env var:
 
 ```powershell
-.\run-sonarqube-analysis.ps1
+$env:SONAR_TOKEN = "<your-token>"
 ```
 
-This will:
-- ✅ Analyze all backend services (C#)
-- ✅ Analyze frontend (TypeScript/Svelte)
-- ✅ Generate quality reports
-- ✅ Check for bugs, vulnerabilities, code smells
+## Run analysis
 
-### 5. View Results
+```powershell
+./run-sonarqube-analysis.ps1
+```
 
-After analysis completes (5-10 minutes):
-
-- **Overall Dashboard**: http://localhost:9000
-- **Backend Project**: http://localhost:9000/dashboard?id=gymhive-backend
-- **Frontend Project**: http://localhost:9000/dashboard?id=gymhive-frontend
-
-## 📊 What Gets Analyzed
-
-### Backend (.NET)
-- AuthenticationService
-- GymService  
-- MembershipService
-- NotificationsService
-- WorkoutLoggingService
-- ApiGateway
-- All BLL/DAL layers
-
-### Frontend (Svelte)
-- All TypeScript/JavaScript code
-- Component structure
-- Service layers
-- API integrations
-
-## 🛑 Stop SonarQube
+## Stop
 
 ```powershell
 docker-compose -f docker-compose-sonar.yml down
 ```
 
-## 🔄 Restart SonarQube
+## Troubleshooting
 
-```powershell
-docker-compose -f docker-compose-sonar.yml restart
-```
-
-## 📈 Quality Metrics
-
-SonarQube tracks:
-- **Bugs**: Logic errors
-- **Vulnerabilities**: Security issues
-- **Code Smells**: Maintainability problems
-- **Coverage**: Test coverage %
-- **Duplications**: Repeated code
-- **Security Hotspots**: Code to review
-
-## ⚠️ Troubleshooting
-
-### Can't access http://localhost:9000
-Wait 2-3 minutes for startup, then check:
-```powershell
-docker ps
-docker logs gymhive-sonarqube
-```
-
-### Analysis fails
-1. Ensure SonarQube is running
-2. Check your token is set correctly
-3. Review error messages in console
-
-### Out of memory
-Increase Docker memory:
-- Docker Desktop → Settings → Resources
-- Set Memory to at least 4GB
-
-## 📚 More Info
-
-See **SONARQUBE-SETUP.md** for:
-- Detailed setup instructions
-- Manual analysis commands
-- CI/CD integration
-- Advanced configuration
+- If the UI is not reachable, wait a few minutes and re-check logs.
+- If it runs out of memory, increase Docker Desktop memory (SonarQube can be heavy).

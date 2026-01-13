@@ -61,7 +61,7 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between h-16">
       <div class="flex items-center gap-10">
-        <a href="#/" class="flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded select-none">
+        <a href={$isAuthenticated ? "#/feed" : "#/"} class="flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded select-none">
           <span class="text-2xl font-bold text-blue-600 tracking-tight">GymHive</span>
         </a>
         <div class="hidden md:flex md:items-center md:space-x-2">

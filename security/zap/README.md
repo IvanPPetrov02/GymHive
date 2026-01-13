@@ -1,33 +1,29 @@
-# OWASP ZAP (Baseline)
+# OWASP ZAP scans (GymHive)
 
-This folder contains a minimal, repeatable ZAP scan runner for GymHive.
+This folder contains repeatable OWASP ZAP scan runners for GymHive.
 
-## What it does
+## What was done
 
-- Runs an **unauthenticated OWASP ZAP baseline scan** against the GymHive ingress URL.
-- Produces HTML + JSON + Markdown reports under `security/zap/results/`.
+- Added a baseline scan runner (unauthenticated) for the public ingress.
+- Added an API scan runner that uses the OpenAPI/Swagger spec when available (best coverage).
+- Reports are generated in `security/zap/results/` (HTML + JSON + Markdown).
 
-## How the analysis was done (methodology)
+## Scripts
 
-Two scans are supported:
+- `run-zap-baseline.ps1` — runs `zap-baseline.py` against the ingress root
+- `run-zap-api.ps1` — runs `zap-api-scan.py` using OpenAPI, else falls back to scanning `/api/`
 
-1) **Baseline scan (unauthenticated)**
-- Tool: OWASP ZAP (Docker image `zaproxy/zap-stable`)
-- Script: `zap-baseline.py`
-- Target: the GymHive ingress base URL (e.g. `https://<host>/`)
-- Purpose: quick passive checks + a light spider of publicly reachable pages/endpoints.
+Both scripts use the Docker image `zaproxy/zap-stable`.
 
-2) **API scan (OpenAPI-driven, unauthenticated where possible)**
-- Tool: OWASP ZAP (Docker image `zaproxy/zap-stable`)
-- Script: `zap-api-scan.py`
-- Target: OpenAPI/Swagger spec when available (best coverage), otherwise falls back to scanning `https://<host>/api/`.
-- Purpose: enumerate API endpoints from the spec and run ZAP’s API scan checks.
+## How it works
 
-Both scripts:
-- Auto-discover the ingress host via `kubectl -n gymhive get ingress gymhive-ingress` (unless you pass `-TargetUrl`).
-- Write reports to `security/zap/results/`.
+1. Determine target URL
+   - If `-TargetUrl` is provided, use it.
+   - Otherwise, auto-discover the ingress host via `kubectl`.
+2. Run ZAP in a disposable Docker container.
+3. Write reports to `security/zap/results/`.
 
-## Run
+## Run baseline scan
 
 From repo root:
 
@@ -35,84 +31,45 @@ From repo root:
 ./security/zap/run-zap-baseline.ps1
 ```
 
-## API scan
+Common options:
 
-Runs an API-focused scan. It will try to auto-detect an OpenAPI spec at common URLs like `/swagger/v1/swagger.json` and `/openapi.json` on your HTTPS ingress. If no spec is found, it falls back to scanning `/api/` directly.
+```powershell
+./security/zap/run-zap-baseline.ps1 -TargetUrl "https://<host>/"
+./security/zap/run-zap-baseline.ps1 -UseHttp
+```
+
+## Run API scan
+
+From repo root:
 
 ```powershell
 ./security/zap/run-zap-api.ps1
 ```
 
-Optional:
+Common options:
 
 ```powershell
-# Explicitly provide OpenAPI URL
-./security/zap/run-zap-api.ps1 -OpenApiUrl "https://gymhive.34.8.235.214.nip.io/swagger/v1/swagger.json"
-
-# Explicitly provide API base URL
-./security/zap/run-zap-api.ps1 -TargetUrl "https://gymhive.34.8.235.214.nip.io/api/"
+./security/zap/run-zap-api.ps1 -OpenApiUrl "https://<host>/swagger/v1/swagger.json"
+./security/zap/run-zap-api.ps1 -TargetUrl "https://<host>/api/"
 ```
 
-Optional:
+## Outputs
 
-```powershell
-# Force HTTP instead of HTTPS
-./security/zap/run-zap-baseline.ps1 -UseHttp
+- Baseline:
+  - `security/zap/results/zap-baseline-<timestamp>.html`
+  - `security/zap/results/zap-baseline-<timestamp>.json`
+  - `security/zap/results/zap-baseline-<timestamp>.md`
+- API:
+  - `security/zap/results/zap-api-<timestamp>.html`
+  - `security/zap/results/zap-api-<timestamp>.json`
+  - `security/zap/results/zap-api-<timestamp>.md`
 
-# Scan a specific URL
-./security/zap/run-zap-baseline.ps1 -TargetUrl "https://gymhive.34.8.235.214.nip.io/"
-```
+## Notes on scan coverage
 
-## Output
+- If endpoints require auth (e.g., `/api` returns 401), unauthenticated scanning will be limited.
+- If the Swagger/OpenAPI spec is reachable, ZAP can still enumerate endpoints from the spec.
 
-Reports are written to:
+## Example results (Jan 8, 2026)
 
-- `security/zap/results/zap-baseline-<timestamp>.html`
-- `security/zap/results/zap-baseline-<timestamp>.json`
-- `security/zap/results/zap-baseline-<timestamp>.md`
-
-API scan reports are written to:
-
-- `security/zap/results/zap-api-<timestamp>.html`
-- `security/zap/results/zap-api-<timestamp>.json`
-- `security/zap/results/zap-api-<timestamp>.md`
-
-## Results (Jan 8, 2026)
-
-These were the results from running the scripts against your current ingress host:
-
-- Ingress host: `gymhive.34.8.235.214.nip.io`
-- Baseline scan target: `http://gymhive.34.8.235.214.nip.io/` (HTTP run)
-- API scan target: `https://gymhive.34.8.235.214.nip.io/api/`
-- OpenAPI detected at: `https://gymhive.34.8.235.214.nip.io/swagger/v1/swagger.json`
-
-### Baseline scan summary
-
-- **FAIL:** 0
-- **WARN:** 9
-- Key warnings (typical hardening items):
-	- Missing Anti-clickjacking header (X-Frame-Options / CSP frame-ancestors)
-	- `X-Content-Type-Options` missing
-	- `Content-Security-Policy` header not set
-	- `Permissions-Policy` header not set
-	- `Server` header leaks version information
-	- Non-storable content / caching directives
-	- Some browser isolation-related informational warnings
-
-### API scan (OpenAPI-driven) summary
-
-- **FAIL:** 0
-- **WARN:** 8
-- Notes:
-	- `/api` returns `401` (protected), so unauthenticated scanning is limited to what’s publicly reachable.
-	- OpenAPI/Swagger spec was reachable and used to enumerate endpoints.
-	- Main warnings were again header hardening on the Swagger/OpenAPI response (CSP/HSTS/X-Frame/X-Content-Type-Options/Permissions-Policy, Server header), plus “Unexpected Content-Type” on some responses.
-
-### Where to see full details
-
-Open the generated HTML reports in `security/zap/results/` for the full list of alerts and affected URLs.
-
-## TODO (later)
-
-- Add an "Interpretation / remediation" section mapping each common header warning (CSP, clickjacking protection, `X-Content-Type-Options`, `Permissions-Policy`, `Server` header) to where it should be fixed in this repo (Ingress/NGINX vs API gateway vs service).
-- Optionally add an authenticated ZAP run (login flow / token) to improve API coverage beyond publicly reachable endpoints.
+- Baseline: 0 FAIL, 9 WARN (mostly missing security headers / header hardening)
+- API: 0 FAIL, 8 WARN (mostly security headers on Swagger/OpenAPI endpoints)
